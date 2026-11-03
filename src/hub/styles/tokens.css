@@ -1,0 +1,28 @@
+/* Design tokens. Source of truth: vault plan v2, section 7.1.
+   Dark only: the arcade is always full screen in a living room. */
+:root {
+  --felt: #16213a; /* the table; page background */
+  --lamp: #f2c66d; /* the one accent: cursor ring, dwell fill, active card edge, scores */
+  --linen: #f3eadf; /* text and card faces */
+  --moss: #5c8a6b; /* climbs, success: fills, borders, large text only (4.0:1 on Felt) */
+  --rust: #c8553d; /* errors, delete: fills, borders, large text only (3.7:1 on Felt) */
+  --rust-text: #e8846b; /* error text at body size (6:1 on Felt) */
+  --moss-text: #8bbf9a; /* success text at body size (7.6:1 on Felt) */
+
+  --felt-2: #1c2a48; /* raised surfaces: sheets, chips */
+  --felt-3: #0f1729; /* the shadow under the lamp, idle dim */
+  --linen-70: color-mix(in oklab, var(--linen) 70%, transparent);
+  --linen-40: color-mix(in oklab, var(--linen) 40%, transparent);
+  --lamp-glow: color-mix(in oklab, var(--lamp) 45%, transparent);
+
+  /* Self-hosted in Phase 1.4; until then the system face stands in. */
+  --font-display: 'Bricolage Grotesque', system-ui, sans-serif;
+  --font-body: 'Manrope', system-ui, sans-serif;
+
+  --radius: 0.9rem; /* cards, sheets */
+  --radius-pill: 999px;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --t-fast: 160ms;
+  --t-cut: 200ms;
+  --t-lift: 420ms;
+}

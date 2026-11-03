@@ -1,0 +1,55 @@
+/* The scaling rule (plan v2, 7.2): the hub is read from a couch, so 1rem is 1/54 of the
+   viewport height. 20px at 1080p, 40px at 2160p, 15px on an 810px-tall laptop. */
+html {
+  font-size: calc(100vh / 54);
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  overflow: hidden; /* no scrolling anywhere in the hub */
+  background: var(--felt);
+  color: var(--linen);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+.screen {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  gap: 1.2rem;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 6rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.01em;
+}
+
+.hint {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 500;
+  color: var(--linen-70);
+}
+
+:focus-visible {
+  outline: 3px solid var(--lamp);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
