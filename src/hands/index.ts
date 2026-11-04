@@ -29,3 +29,4 @@ export type { Keyframe, SyntheticHandSpec } from './synthetic.ts';
 export { ENGINE_DEFAULTS, createEngine } from './engine.ts';
 export type { Engine, EngineOptions, RawHand } from './engine.ts';
 export { HAND_CONNECTIONS, drawSkeleton } from './skeleton.ts';
+export { regionEdge } from './region.ts';

@@ -16,6 +16,7 @@ The plan (v2, sections 1.3, 6.1, 11.5) relies on these signals. The kit was writ
 | palm `roll` | `hand.roll` | angle of wrist → middle MCP from vertical, radians, clockwise positive (mirrored space) | > 0.6 rad pour | by construction |
 | `size` | `hand.size` | bounding-box diagonal of the 21 points, frame units | primary-hand rule: largest, 20% larger for 1 s to take over | HandService |
 | `palm` | `hand.palm` | mean of wrist + 4 MCPs → mirrored → reduced region → clamped → One Euro `PALM_FILTER` | everything | HandService |
+| `edge` | `hand.edge` | the side of the region the unclamped mapped palm is past (`left`/`right`/`top`/`bottom`, the furthest side at a corner), null inside; `regionEdge()` in `src/hands/region.ts`; synthetic hands read it from a palm outside 0–1 | thumbnail lights that side at once; hub hint "Move your hand toward the middle" after 1 s off-region (`OFF_REGION_MS`), cleared the moment the hand is inside 💡 | ✅ unit (`regionEdge`, synthetic) and smoke (`tools/smoke.spec.ts`, bot hand at x −0.2) |
 
 ## Motions (discrete events), `src/hands/motions.ts`
 
@@ -50,6 +51,8 @@ The plan (v2, sections 1.3, 6.1, 11.5) relies on these signals. The kit was writ
 - 💡 (webcam session 2, 2026-11-04) `pinch` is gated by index extension. A closed fist put the thumb tip on the curled index and scored 0.88–1.0 by the gap alone on every held frame; a real pinch kept the index 0.86–1.0 extended. Bent-index pinches pass from about 0.4 extension; a pinch with the index curled into the palm is a fist.
 - 💡 (webcam session 2) `point` ignores the middle finger: aimed at the lens it read straight beside the index in every recorded frame, and ring + pinky alone separate a point from an open hand.
 - 💡 (webcam session 2) `PINCH_FILTER` 3 → 5 Hz: at 3 Hz a 100 ms tap peaked at 0.47–0.91 and one tap in three missed press.
+
+- 💡 (webcam session 2 follow-up, 2026-11-04) `TrackedHand.edge`: the clamped palm hid a hand out at the edge of the view (it sat at x 0.00–0.06 for a whole swipe slot). The service now reports which side the raw palm is past; the thumbnail draws the region and lights that side, and the hub nudges after 1 s.
 
 - ❓→💡 `throw` has no z-direction: the kit reports a 2D direction and speed. Reef picks the fish nearest the throw's line.
 - 💡 `pinch-tap` and `throw` are decided at release: fast release = throw, still release = tap.

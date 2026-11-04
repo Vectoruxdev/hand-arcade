@@ -201,3 +201,67 @@ test('by hand only: the ring, a dwell click, a pinch click, a swipe and a pass-o
   await hand(page, { palm: { x: 0.5, y: 0.5 } });
   expect(errors).toEqual([]);
 });
+
+// Webcam session 2: a hand at the edge of the camera's view sat clamped at a screen edge with no
+// feedback. Now the thumbnail shows the region and lights the side the hand is past, and after a
+// second the hint line nudges the player back; both clear the moment the hand is inside again.
+test('a hand past the camera region lights that edge on the thumbnail and gets the nudge', async ({
+  page,
+}) => {
+  const errors = collectErrors(page);
+  const nudge = 'Move your hand toward the middle';
+  await openSeeded(page, '#/shelf', 'Edge');
+  await expect(page.locator('.card--center')).toHaveAttribute('data-game', 'motes');
+  // Bot mode has no camera, so the shelf never shows the thumbnail on its own.
+  await page.evaluate(() =>
+    (window as unknown as { __arcade: { thumbnail: { show(): void } } }).__arcade.thumbnail.show(),
+  );
+  const hint = page.locator('[data-hint]');
+  // The left edge of the region on the thumbnail canvas (320×180, region from x 0.15).
+  const edgePixel = () =>
+    page.evaluate(() => {
+      const c = document.querySelector('[data-thumbnail] canvas') as HTMLCanvasElement;
+      const d = (c.getContext('2d') as CanvasRenderingContext2D).getImageData(48, 90, 1, 1).data;
+      return { r: d[0] ?? 0, g: d[1] ?? 0, b: d[2] ?? 0 };
+    });
+
+  // Inside the region: the shelf's own hint, a quiet outline on the thumbnail.
+  await holdHand(page, { palm: { x: 0.5, y: 0.3 } }, 300);
+  await expect(hint).not.toHaveText(nudge);
+  const quiet = await edgePixel();
+  expect(quiet.r).toBeLessThan(150);
+
+  // Drifts out past the left edge (slower than a swipe): no nudge before a second, then the
+  // nudge; the edge lights at once.
+  await moveHand(page, { palm: { x: 0.5, y: 0.3 } }, { x: -0.2, y: 0.5 }, 600);
+  const holding = holdHand(page, { palm: { x: -0.2, y: 0.5 } }, 2600);
+  await page.waitForTimeout(300);
+  await expect(hint).not.toHaveText(nudge);
+  await expect(hint).toHaveText(nudge, { timeout: 1500 });
+  const edge = await page.evaluate(
+    () =>
+      (
+        window as unknown as {
+          __arcade: { hands: { latest(): { primary: { edge: string | null } | null } | null } };
+        }
+      ).__arcade.hands.latest()?.primary?.edge ?? null,
+  );
+  expect(edge).toBe('left');
+  const lit = await edgePixel();
+  expect(lit.r).toBeGreaterThan(200);
+  expect(lit.b).toBeLessThan(160);
+  // Proof for the PR: the shelf with the region on the thumbnail, the left edge lit, the nudge.
+  await page.screenshot({ path: test.info().outputPath('edge-region-shelf.png'), scale: 'css' });
+  await page
+    .locator('[data-thumbnail]')
+    .screenshot({ path: test.info().outputPath('edge-region-thumbnail.png') });
+  await holding;
+
+  // Back inside: the nudge clears at once (well before the lost-hand line could), the edge dims.
+  await holdHand(page, { palm: { x: 0.5, y: 0.3 } }, 250);
+  await expect(hint).not.toHaveText(nudge);
+  await expect(hint).toContainText('Pinch');
+  const back = await edgePixel();
+  expect(back.r).toBeLessThan(150);
+  expect(errors).toEqual([]);
+});

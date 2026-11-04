@@ -61,6 +61,9 @@ export interface Vec3 extends Vec2 {
   z: number;
 }
 
+/** A side of the reduced camera region (`HandService.region`). */
+export type RegionEdge = 'left' | 'right' | 'top' | 'bottom';
+
 export interface TrackedHand {
   /** Stable while the hand stays in frame. */
   id: number;
@@ -70,6 +73,12 @@ export interface TrackedHand {
   landmarks: Vec3[];
   /** Smoothed palm center, mapped through the reduced camera region to 0–1 screen space. */
   palm: Vec2;
+  /**
+   * The side of the camera region the raw palm is past, or null while it is inside. `palm` is
+   * clamped to the region, so it cannot say that the hand is really out at the edge of the view;
+   * this can. The hub nudges the player back toward the middle after a second.
+   */
+  edge: RegionEdge | null;
   /** Screen units per second. */
   velocity: Vec2;
   /** Bounding-box diagonal, normalized; drives the primary-hand rule. */
