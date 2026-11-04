@@ -19,6 +19,8 @@ interface PinchState {
 
 export const MOTION = {
   historyMs: 1500,
+  /** A hand the detector drops keeps its history this long (the tracker keeps its id as long). */
+  graceMs: 400,
   swipe: { lookbackMs: 120, minSpeed: 1.5, minDistance: 0.12, refractoryMs: 350 },
   wave: { windowMs: 1200, minAmplitude: 0.05, reversals: 3, refractoryMs: 1500 },
   clap: { maxDistance: 0.08, openDistance: 0.2, lookbackMs: 300, refractoryMs: 1000 },
@@ -101,8 +103,10 @@ export class MotionDetector {
       this.detectPinchEdges(h.id, hist, t, events);
     }
 
-    for (const id of [...this.hist.keys()]) {
-      if (!seen.has(id)) {
+    for (const [id, hist] of this.hist) {
+      if (seen.has(id)) continue;
+      const lastT = hist[hist.length - 1]?.t ?? -Infinity;
+      if (t - lastT > MOTION.graceMs) {
         this.hist.delete(id);
         this.pinch.delete(id);
       }
@@ -279,9 +283,10 @@ export class MotionDetector {
     }
 
     const bothOpen = a.poses.open >= 0.5 && b.poses.open >= 0.5;
-    const bothGrip =
-      (a.poses.fist >= 0.5 || a.poses.pinch >= 0.5) &&
-      (b.poses.fist >= 0.5 || b.poses.pinch >= 0.5);
+    // A thumbs up is a fist to the pose math but not a grip: two thumbs up never steer.
+    const grip = (h: TrackedHand) =>
+      (h.poses.fist >= 0.5 || h.poses.pinch >= 0.5) && h.poses.thumbsUp < 0.5;
+    const bothGrip = grip(a) && grip(b);
     const mode: 'zoom' | 'steer' | null = bothOpen ? 'zoom' : bothGrip ? 'steer' : null;
     const angle = Math.atan2(b.palm.y - a.palm.y, b.palm.x - a.palm.x);
 

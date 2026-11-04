@@ -9,12 +9,14 @@ export {
   clamp01,
   computePoses,
   dist,
+  dist3,
   palmCenter,
   palmLength,
   pinchGap,
   wristRoll,
 } from './poses.ts';
 export type { Poses } from './poses.ts';
+export { HandTracker, TRACK } from './tracker.ts';
 export { MOTION, MotionDetector, samePerson } from './motions.ts';
 export {
   BotPlayer,

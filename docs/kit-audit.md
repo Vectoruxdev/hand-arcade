@@ -8,8 +8,8 @@ The plan (v2, sections 1.3, 6.1, 11.5) relies on these signals. The kit was writ
 
 | Plan name | Field | How it is computed | Thresholds the plan uses | Test |
 | --- | --- | --- | --- | --- |
-| `open` | `poses.open` | mean extension of index, middle, ring, pinky (tip-to-wrist over PIP-to-wrist, 1.0 → 1.35 maps to 0 → 1) 💡 | ≥ 0.7 wipe, ≥ 0.8 back and pet, ≥ 0.5 zoom | ✅ open hand > 0.7 |
-| `point` | `poses.point` | index extension × (1 − mean of the other three) | ≥ 0.7 vacuum, pop reads `landmarks[8]` | ✅ ≥ 0.7 |
+| `open` | `poses.open` | mean extension of index, middle, ring, pinky (tip-to-wrist over PIP-to-wrist, measured in 3D, 1.0 → 1.35 maps to 0 → 1; 3D since webcam session 1, where a finger aimed at the lens read as curled) 💡 | ≥ 0.7 wipe, ≥ 0.8 back and pet, ≥ 0.5 zoom | ✅ open hand > 0.7 |
+| `point` | `poses.point` | index extension × (1 − mean of the other three) | ≥ 0.7 vacuum, pop reads `landmarks[8]` | ✅ ≥ 0.7, also with the index aimed at the camera |
 | `pinch` | `poses.pinch` | 1 − (thumb-tip-to-index-tip gap in palm lengths − 0.25) / 0.55, then One Euro `PINCH_FILTER` 💡 | press ≥ 0.6, release ≤ 0.3 (`MOTION.press/release`) | ✅ ≥ 0.6 |
 | `fist` | `poses.fist` | 1 − mean extension | ≥ 0.5 steer (with pinch) | ✅ > 0.6 |
 | `thumbsUp` | `poses.thumbsUp` | thumb stuck out × fingers curled × thumb tip ≥ 1.2 palm lengths above the wrist 💡 | ≥ 0.8 for 1 s sign-off | ✅ ≥ 0.8 |
@@ -21,14 +21,14 @@ The plan (v2, sections 1.3, 6.1, 11.5) relies on these signals. The kit was writ
 
 | Plan name | Event | Detection (`MOTION` table) | Plan parameters | Test |
 | --- | --- | --- | --- | --- |
-| `swipe-left` / `swipe-right` | `{ kind, hand, speed }` | palm moved ≥ 0.12 widths with \|vx\| ≥ 1.5 widths/s over the last 120 ms and \|dx\| > 2\|dy\|; 350 ms refractory; `lastSwipeT` lets the Cursor suppress pinch for 350 ms | speed ≥ 1.5, 350 ms refractory | ✅ one swipe, no double |
+| `swipe-left` / `swipe-right` | `{ kind, hand, speed }` | palm moved ≥ 0.12 widths with \|vx\| ≥ 1.5 widths/s over the last 120 ms and \|dx\| > 2\|dy\|; 350 ms refractory; `lastSwipeT` lets the Cursor suppress pinch for 350 ms; the history survives a detector dropout of up to 400 ms (`MOTION.graceMs`) | speed ≥ 1.5, 350 ms refractory | ✅ one swipe, no double, survives a 200 ms dropout |
 | `wave` | `{ kind, hand }` | ≥ 3 horizontal reversals of ≥ 0.05 within 1.2 s; 1.5 s refractory 💡 | – | ✅ |
 | `clap` | `{ kind }` | both hands pass `samePerson` (sizes within 25%, ≤ 0.6 apart), palms < 0.08 apart now and > 0.2 apart within the last 300 ms; 1 s refractory | distance < 0.08, 1 s refractory | ✅ fires; ✅ refused for mismatched sizes |
 | `throw` | `{ kind, hand, direction, speed }` | pinch released with palm speed ≥ 1.2 /s over the last 100 ms; 600 ms refractory 💡. Direction is 2D; the plan's "toward the camera" z-check is not in v1 (Reef aims at the fish nearest the throw line instead) | – | ✅ |
 | `circle` | `{ kind, hand, clockwise }` | last 1 s of samples around their centroid: radius ≥ 0.04 and within 0.4–1.6× of the mean, signed sweep ≥ 0.9 turns; 800 ms refractory | clockwise flag | ✅ clockwise |
 | `pinch-tap` | `{ kind, hand, at }` | press → release within 350 ms with < 0.04 movement (a fast release is a `throw` instead) | repeated within 400 ms = sprinkle (Reef counts them) | ✅ |
 | `zoom` | `{ kind, scale }` continuous | both hands open ≥ 0.5 and `samePerson`; scale = distance / distance at start, after a 250 ms settle | scale > 1.4 | ✅ > 1.4 |
-| `steer` | `{ kind, angle }` continuous | both hands gripping (fist or pinch ≥ 0.5); angle of the line between the hands minus the angle at start, radians | pans ±25% | by construction |
+| `steer` | `{ kind, angle }` continuous | both hands gripping (fist or pinch ≥ 0.5, and neither a thumbs up); angle of the line between the hands minus the angle at start, radians | pans ±25% | ✅ two fists steer, two thumbs up do not |
 
 ## Engine and helpers
 
@@ -37,6 +37,7 @@ The plan (v2, sections 1.3, 6.1, 11.5) relies on these signals. The kit was writ
 | A factory that owns MediaPipe and emits frames | `HandService.create()` loads the engine in the background; `startCamera()` is the one `getUserMedia` | `src/services/HandService.ts` |
 | 21 landmarks per hand, normalized, with handedness | `createEngine().detect()` → `RawHand[]`; handedness is MediaPipe's selfie-camera label, lowercased | `src/hands/engine.ts` |
 | Landmarks already mirrored, in screen space | x is flipped, then every point is mapped through the reduced region (unclamped); the palm is clamped and smoothed | `HandService.track()` |
+| Hand ids across frames | `HandTracker`: nearest neighbour within 0.25 frame widths, the radius growing 1.5/s while a hand is unseen up to 0.5, a 400 ms memory so a dropped frame keeps ids, filters and motion history, and one id per detection (closest pairs first) | `src/hands/tracker.ts` |
 | Synthetic hands: pointer and bot | pointer: `HandService.usePointer()` (mouse/touch → one open hand, pinch while the button is down); bot: `useBot()` + `BotPlayer` scripts; tests: `inject()` / `injectHands()` | `src/hands/synthetic.ts` |
 | One Euro with `minCutoff`, `beta`, `dCutoff` | yes; palm and pinch have their own filters; `setPalmFilter()` for the Lab | `src/hands/oneEuro.ts` |
 | Motes' own `pinch.ts` vs the kit's pinch | there is no upstream Motes; the arcade's Motes reads `poses.pinch` with the Cursor's hysteresis | `games/motes/` |
@@ -44,6 +45,8 @@ The plan (v2, sections 1.3, 6.1, 11.5) relies on these signals. The kit was writ
 | Detection budget | `HandService.stats.detectMs`; over 25 ms for 3 s → every other camera frame | `HandService.recordDetect()` |
 
 ## Changes to the plan from this audit
+
+- ❓ (webcam session 1, 2026-11-04) a closed fist reads as a pinch of 0.8–0.98: MediaPipe puts the thumb tip on the curled index. Not changed yet; the second session records raw landmarks so the gate can be designed from real frames, not guessed.
 
 - ❓→💡 `throw` has no z-direction: the kit reports a 2D direction and speed. Reef picks the fish nearest the throw's line.
 - 💡 `pinch-tap` and `throw` are decided at release: fast release = throw, still release = tap.

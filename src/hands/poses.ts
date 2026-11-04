@@ -41,6 +41,11 @@ export function dist(a: Vec2, b: Vec2): number {
   return Math.hypot(a.x - b.x, a.y - b.y);
 }
 
+/** With depth. MediaPipe's z is in about the same units as x, so a finger aimed at the camera keeps its length. */
+export function dist3(a: Vec3, b: Vec3): number {
+  return Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
+}
+
 export function at(landmarks: readonly Vec3[], i: number): Vec3 {
   const p = landmarks[i];
   if (!p) throw new Error(`hand landmark ${i} missing (${landmarks.length} given)`);
@@ -82,13 +87,14 @@ export function boundingDiagonal(l: readonly Vec3[]): number {
 
 /**
  * 0 curled … 1 straight. Ratio of tip-to-wrist over pip-to-wrist: a straight finger reaches
- * ~1.35× its PIP distance, a curled one ≤ 1.
+ * ~1.35× its PIP distance, a curled one ≤ 1. Measured in 3D: in the camera's 2D view a finger
+ * pointed at the lens looks curled (first webcam session: "point" read as "fist").
  */
 export function fingerExtension(l: readonly Vec3[], mcp: number, pip: number, tip: number): number {
   void mcp;
   const w = at(l, LM.wrist);
-  const dTip = dist(at(l, tip), w);
-  const dPip = Math.max(dist(at(l, pip), w), 1e-4);
+  const dTip = dist3(at(l, tip), w);
+  const dPip = Math.max(dist3(at(l, pip), w), 1e-4);
   return clamp01((dTip / dPip - 1.0) / 0.35);
 }
 

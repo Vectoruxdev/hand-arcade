@@ -143,11 +143,37 @@ Breeding runs at sign-off (plan 11.8) and fry appear in the nursery net at size 
 
 Eight milestones (plan 11.10) award +10 shells once and show on the profile page's Me tab with dates (`boards.ts` reads the Reef save).
 
-### 4.5 Bot, capture, fps, loud, tests — done except fps
+### 4.5 Bot, capture, fps, loud, tests — done (fps measured 2026-11-04, see the webcam session)
 
 `bot.ts` runs the plan's visit (arrive, feed 6 taps, wipe 3 streaks, vacuum 2 patches, pet, thumbs up) in game time, emitting every step for at least three frames so `fast(8)` still lands pinches. `games.spec.ts` runs it to the results sheet in CI; `npm run capture` with `CAPTURE_CLOCK=18:00` produced the golden-hour cover and three screenshots; `npm run loud` reports −43.5 dBFS (Motes −16.2, Pop −19.1), under the −6 gate. fps: see 3.2.
 
 **Phase 4 gate:** the bot visit passes locally; the cover exists. CI on `phase-3/reef` pending the hardening below.
+
+## Webcam session 1 (2026-11-04, Jared's Mac, Chrome)
+
+The first real-camera run, driven together: Jared in front of the webcam, the page recorded from this side.
+
+**Worked as built**
+
+- Camera on the GPU delegate: 15 ms per detection at 60 Hz, the hub at 60 fps. Welcome, the Who screen and the create flow were done by hand (profile "Jz").
+- Open hand steady at 0.93–0.99; holding it still over a card dwelled and opened it (by design: "pinch or hold to open").
+- Pinch: press 0.96–0.99, release 0.03, a `pinch-tap` fired; thumbs up 1.0 for as long as it was held; a `swipe-right` fired; presence went tracking → holding → lost-brief → lost as the hands dropped, and the hint switched to "Show me your hand".
+- The built-in browser pane blocks the camera; the app's denied path fell back to the mouse in 4 ms.
+- **5.2 fps gate, Reef, real GPU**: devicePixelRatio 2, 1728×907, bot visit, 419 frames: p50 16.7 ms, p90 17.8 ms, worst 1 % 18.5 ms, max 18.7 ms → 60 fps. 38 draw calls, 1,266 triangles.
+
+**Found and fixed on `phase-3/reef`**
+
+- The Welcome button awaited the fullscreen request before asking for the camera; where that request never settles (embedded panes) the camera was never requested. Now raced against 800 ms (`e90032e`).
+- Pointing at the screen read as a fist: the index finger aimed at the lens is foreshortened in 2D. Finger extension is now measured in 3D with MediaPipe's z.
+- Every dropped detection frame reset the hand's id, its filters and its motion history, so a fast swipe (which blurs) restarted from zero. `HandTracker` keeps ids for 400 ms with a radius that grows at swipe speed, and `MotionDetector` keeps history for the same window.
+- Two detections could share one id (seen once: a duplicate detection next to the real hand). The tracker claims each known hand once, closest pairs first.
+- Two thumbs up counted as two fists and steered. A thumbs up is no longer a grip.
+
+**Open**
+
+- ❓ A closed fist reads as a pinch of 0.8–0.98 (the thumb tip lands on the curled index), which pressed and dragged the cursor for two seconds. No gate yet: session 2 records raw landmarks so the fix comes from real frames.
+- Both hands were in frame most of the time (the phone hand), so the primary hand swapped once by the 20 %-larger rule. Expected; worth watching with kids.
+- The 100 ms sampler used for session 1 saw one frame in six, so single-frame events (the first swipe, the second pinch-tap) may have fired unseen. Session 2 records every frame.
 
 ## Overnight notes for the morning
 
@@ -156,4 +182,4 @@ Eight milestones (plan 11.10) award +10 shells once and show on the profile page
 - **Real captures** replaced the placeholders for all three games (`npm run capture`); Reef's at `CAPTURE_CLOCK=18:00`.
 - **Vercel (5.2) is yours to click.** The auto-mode classifier refused to create the Vercel project (it counts as a production deploy), and a CLI deploy would be the same thing by another road, so nothing was deployed. The PWA build is verified locally (`npm run build`, then `npx vite preview`). To deploy: in Vercel (team `jared-vectoruxcoms-projects`) → Add New → Project → import `Vectoruxdev/hand-arcade` (framework Vite, build `npm run build`, output `dist`, Node 24) → after it builds, Settings → Deployment Protection → turn Vercel Authentication **off** for production (and previews, if the family computer should open branch previews). Production deploys from `main`, so merge #2 → #3 → #4 first, or the live site is the Phase 0 page.
 - **5.3, the family playtest,** is the one session nobody can do overnight: `docs/playtest-log.md` is ready for it.
-- **Real webcam not tried.** Every hand-path tonight ran on synthetic hands. First thing: open `http://localhost:4800/` (dev server) or the deploy, click Allow camera, and watch `?debug=1` for the pose numbers while you pinch, point and give a thumbs up. The thresholds in `docs/kit-audit.md` marked 💡 are the ones to tune if a gesture misses.
+- **Real webcam: tried 2026-11-04.** See "Webcam session 1" above for what worked, what was fixed and what is still open.

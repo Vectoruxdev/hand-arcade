@@ -12,11 +12,11 @@ import {
   boundingDiagonal,
   computePoses,
   createEngine,
-  dist,
   palmCenter,
   syntheticHand,
   wristRoll,
 } from '../hands/index.ts';
+import { HandTracker } from '../hands/tracker.ts';
 import type { Engine, EngineOptions, OneEuroOptions, SyntheticHandSpec } from '../hands/index.ts';
 
 export type CameraState =
@@ -36,7 +36,7 @@ export interface CameraRegion {
 export const DEFAULT_REGION: CameraRegion = { x0: 0.15, x1: 0.85, y0: 0.2, y1: 0.8 };
 
 export const PRESENCE = { holdMs: 400, briefMs: 2000 } as const;
-export const PRIMARY = { ratio: 1.2, stickyMs: 1000, matchDistance: 0.25 } as const;
+export const PRIMARY = { ratio: 1.2, stickyMs: 1000 } as const;
 export const BUDGET = { slowMs: 25, slowForMs: 3000, fastMs: 15 } as const;
 
 export interface HandServiceOptions {
@@ -53,11 +53,6 @@ interface HandFilters {
   pinch: OneEuro;
   lastPalm: Vec2 | null;
   lastT: number;
-}
-
-interface PrevHand {
-  id: number;
-  rawPalm: Vec2;
 }
 
 export interface HandStats {
@@ -93,8 +88,7 @@ export class HandService {
   private raf = 0;
   private running = false;
   private filters = new Map<number, HandFilters>();
-  private prev: PrevHand[] = [];
-  private nextId = 1;
+  private tracker = new HandTracker();
   private primaryId: number | null = null;
   private challenger: { id: number; since: number } | null = null;
   private lastSeenT = -Infinity;
@@ -217,6 +211,7 @@ export class HandService {
     }
     this.source = 'camera';
     this.motions.reset();
+    this.tracker.reset();
     this.setState('tracking');
     this.startLoop();
     return this.state;
@@ -236,6 +231,7 @@ export class HandService {
     this.releaseStream();
     this.source = 'pointer';
     this.motions.reset();
+    this.tracker.reset();
     if (this.state === 'tracking' || this.state === 'idle' || this.state === 'requesting')
       this.setState('pointer');
     this.startLoop();
@@ -246,6 +242,7 @@ export class HandService {
     this.releaseStream();
     this.source = 'bot';
     this.motions.reset();
+    this.tracker.reset();
     this.setState('pointer');
     this.startLoop();
   }
@@ -421,10 +418,14 @@ export class HandService {
     this.recordDetect(dt, now);
 
     this.lastRawHands = raw.map((h) => h.landmarks.map((p) => ({ x: 1 - p.x, y: p.y })));
-    const hands = raw.map((h) => {
-      const mirrored = h.landmarks.map((p) => ({ x: 1 - p.x, y: p.y, z: p.z }));
-      return this.track(mirrored, h.handedness, now);
-    });
+    const mirrored = raw.map((h) => h.landmarks.map((p) => ({ x: 1 - p.x, y: p.y, z: p.z })));
+    const ids = this.tracker.assign(
+      mirrored.map((l) => palmCenter(l)),
+      now,
+    );
+    const hands = mirrored.map((l, i) =>
+      this.track(l, raw[i]?.handedness ?? 'right', ids[i] ?? 0, now),
+    );
     this.finishFrame(hands, now, 'camera');
   }
 
@@ -542,21 +543,13 @@ export class HandService {
     return { x: (p.x - r.x0) / (r.x1 - r.x0), y: (p.y - r.y0) / (r.y1 - r.y0) };
   }
 
-  private track(mirrored: Vec3[], handedness: 'left' | 'right', now: number): TrackedHand {
+  private track(
+    mirrored: Vec3[],
+    handedness: 'left' | 'right',
+    id: number,
+    now: number,
+  ): TrackedHand {
     const rawPalm = palmCenter(mirrored);
-    // Match to the previous frame's hands by palm distance; else a new id.
-    let id: number | null = null;
-    let best: number = PRIMARY.matchDistance;
-    for (const p of this.prev) {
-      const d = dist(p.rawPalm, rawPalm);
-      if (d < best) {
-        best = d;
-        id = p.id;
-      }
-    }
-    if (id === null) id = this.nextId++;
-    this.prev = this.prev.filter((p) => p.id !== id);
-    this.prev.push({ id, rawPalm });
 
     let f = this.filters.get(id);
     if (!f) {
@@ -601,9 +594,8 @@ export class HandService {
 
   /** Largest hand leads; a challenger must be 20% larger for 1 s (plan 2.5). Drops stale filters. */
   private pickPrimary(hands: TrackedHand[], now: number): TrackedHand[] {
-    const ids = new Set(hands.map((h) => h.id));
-    for (const id of [...this.filters.keys()]) if (!ids.has(id)) this.filters.delete(id);
-    this.prev = this.prev.filter((p) => ids.has(p.id));
+    const live = this.tracker.live();
+    for (const id of [...this.filters.keys()]) if (!live.has(id)) this.filters.delete(id);
     if (hands.length === 0) {
       this.primaryId = null;
       this.challenger = null;
