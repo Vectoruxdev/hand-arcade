@@ -13,7 +13,8 @@ export interface OneEuroOptions {
 }
 
 export const PALM_FILTER: OneEuroOptions = { minCutoff: 1.2, beta: 0.01, dCutoff: 1.0 };
-export const PINCH_FILTER: OneEuroOptions = { minCutoff: 3, beta: 0.01, dCutoff: 1.0 };
+/** 💡 5 Hz since webcam session 2: at 3 Hz a 100 ms tap peaked at 0.47–0.9 and some taps missed the 0.6 press. */
+export const PINCH_FILTER: OneEuroOptions = { minCutoff: 5, beta: 0.01, dCutoff: 1.0 };
 
 function alpha(cutoff: number, dtSec: number): number {
   const tau = 1 / (2 * Math.PI * cutoff);

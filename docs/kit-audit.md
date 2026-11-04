@@ -9,8 +9,8 @@ The plan (v2, sections 1.3, 6.1, 11.5) relies on these signals. The kit was writ
 | Plan name | Field | How it is computed | Thresholds the plan uses | Test |
 | --- | --- | --- | --- | --- |
 | `open` | `poses.open` | mean extension of index, middle, ring, pinky (tip-to-wrist over PIP-to-wrist, measured in 3D, 1.0 → 1.35 maps to 0 → 1; 3D since webcam session 1, where a finger aimed at the lens read as curled) 💡 | ≥ 0.7 wipe, ≥ 0.8 back and pet, ≥ 0.5 zoom | ✅ open hand > 0.7 |
-| `point` | `poses.point` | index extension × (1 − mean of the other three) | ≥ 0.7 vacuum, pop reads `landmarks[8]` | ✅ ≥ 0.7, also with the index aimed at the camera |
-| `pinch` | `poses.pinch` | 1 − (thumb-tip-to-index-tip gap in palm lengths − 0.25) / 0.55, then One Euro `PINCH_FILTER` 💡 | press ≥ 0.6, release ≤ 0.3 (`MOTION.press/release`) | ✅ ≥ 0.6 |
+| `point` | `poses.point` | index extension × (1 − mean of ring and pinky extension); the middle finger is ignored because it reads straight beside an index aimed at the lens | ≥ 0.7 vacuum, pop reads `landmarks[8]` | ✅ ≥ 0.7 synthetic, and on two recorded frames aimed at the lens |
+| `pinch` | `poses.pinch` | 1 − (thumb-tip-to-index-tip gap in palm lengths − 0.25) / 0.55, × an index-extension ramp (0 at 0.1, 1 at 0.4) so a closed fist, whose thumb tip rests on the curled index, is not a pinch; then One Euro `PINCH_FILTER` at 5 Hz 💡 | press ≥ 0.6, release ≤ 0.3 (`MOTION.press/release`) | ✅ ≥ 0.6 synthetic and recorded; recorded fist < 0.3 |
 | `fist` | `poses.fist` | 1 − mean extension | ≥ 0.5 steer (with pinch) | ✅ > 0.6 |
 | `thumbsUp` | `poses.thumbsUp` | thumb stuck out × fingers curled × thumb tip ≥ 1.2 palm lengths above the wrist 💡 | ≥ 0.8 for 1 s sign-off | ✅ ≥ 0.8 |
 | palm `roll` | `hand.roll` | angle of wrist → middle MCP from vertical, radians, clockwise positive (mirrored space) | > 0.6 rad pour | by construction |
@@ -37,6 +37,7 @@ The plan (v2, sections 1.3, 6.1, 11.5) relies on these signals. The kit was writ
 | A factory that owns MediaPipe and emits frames | `HandService.create()` loads the engine in the background; `startCamera()` is the one `getUserMedia` | `src/services/HandService.ts` |
 | 21 landmarks per hand, normalized, with handedness | `createEngine().detect()` → `RawHand[]`; handedness is MediaPipe's selfie-camera label, lowercased | `src/hands/engine.ts` |
 | Landmarks already mirrored, in screen space | x is flipped, then every point is mapped through the reduced region (unclamped); the palm is clamped and smoothed | `HandService.track()` |
+| Recorded real hands as fixtures | `tests/fixtures/hands/<who>-<date>.json`: raw mirrored landmarks of frames a webcam session found hard, asserted in `tests/unit/real-hands.test.ts` | `tests/fixtures/hands/` |
 | Hand ids across frames | `HandTracker`: nearest neighbour within 0.25 frame widths, the radius growing 1.5/s while a hand is unseen up to 0.5, a 400 ms memory so a dropped frame keeps ids, filters and motion history, and one id per detection (closest pairs first) | `src/hands/tracker.ts` |
 | Synthetic hands: pointer and bot | pointer: `HandService.usePointer()` (mouse/touch → one open hand, pinch while the button is down); bot: `useBot()` + `BotPlayer` scripts; tests: `inject()` / `injectHands()` | `src/hands/synthetic.ts` |
 | One Euro with `minCutoff`, `beta`, `dCutoff` | yes; palm and pinch have their own filters; `setPalmFilter()` for the Lab | `src/hands/oneEuro.ts` |
@@ -46,7 +47,9 @@ The plan (v2, sections 1.3, 6.1, 11.5) relies on these signals. The kit was writ
 
 ## Changes to the plan from this audit
 
-- ❓ (webcam session 1, 2026-11-04) a closed fist reads as a pinch of 0.8–0.98: MediaPipe puts the thumb tip on the curled index. Not changed yet; the second session records raw landmarks so the gate can be designed from real frames, not guessed.
+- 💡 (webcam session 2, 2026-11-04) `pinch` is gated by index extension. A closed fist put the thumb tip on the curled index and scored 0.88–1.0 by the gap alone on every held frame; a real pinch kept the index 0.86–1.0 extended. Bent-index pinches pass from about 0.4 extension; a pinch with the index curled into the palm is a fist.
+- 💡 (webcam session 2) `point` ignores the middle finger: aimed at the lens it read straight beside the index in every recorded frame, and ring + pinky alone separate a point from an open hand.
+- 💡 (webcam session 2) `PINCH_FILTER` 3 → 5 Hz: at 3 Hz a 100 ms tap peaked at 0.47–0.91 and one tap in three missed press.
 
 - ❓→💡 `throw` has no z-direction: the kit reports a 2D direction and speed. Reef picks the fish nearest the throw's line.
 - 💡 `pinch-tap` and `throw` are decided at release: fast release = throw, still release = tap.

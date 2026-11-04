@@ -171,9 +171,34 @@ The first real-camera run, driven together: Jared in front of the webcam, the pa
 
 **Open**
 
-- ❓ A closed fist reads as a pinch of 0.8–0.98 (the thumb tip lands on the curled index), which pressed and dragged the cursor for two seconds. No gate yet: session 2 records raw landmarks so the fix comes from real frames.
+- ✅ A closed fist read as a pinch of 0.8–0.98 (the thumb tip lands on the curled index) and dragged the cursor for two seconds. Fixed in session 2 with an index-extension gate.
 - Both hands were in frame most of the time (the phone hand), so the primary hand swapped once by the 20 %-larger rule. Expected; worth watching with kids.
 - The 100 ms sampler used for session 1 saw one frame in six, so single-frame events (the first swipe, the second pinch-tap) may have fired unseen. Session 2 records every frame.
+
+## Webcam session 2 (2026-11-04, same setup; every frame recorded with landmarks)
+
+Fist 3 s, pinch ×3, point at the lens 3 s, thumbs up, two swipes. 919 frames with a hand; the raw recording stays outside the repo, four frames of it are fixtures in `tests/fixtures/hands/jared-2026-11-04.json`.
+
+**Numbers**
+
+- Held fist (130 frames): every finger extension 0 in 2D and 3D, index PIP angle 57–111°, thumb-to-index gap 0.12 palm lengths → `pinch` 0.88–1.0 by the gap alone.
+- Pinch on contact (13 frames): gap 0.03–0.29, index extension 0.86–1.0 (PIP 154–179°), the other fingers half open. The filtered `pinch` peaked at 0.47–0.91 on 100 ms taps; two of three taps fired.
+- Index aimed at the lens (215 frames): index extension 0.82–1.0 in 3D (the session-1 fix holds), but the middle finger read straight too (0.75–1.0, PIP 161–178°) with ring and pinky curled, so `point` was 0.37–0.66, under the 0.7 gate.
+- Thumbs up: not seen. The frames in that slot are a fist with the thumb by the index (gap 0.2–0.4). Session 1 scored a thumbs up 1.0 with the hand sideways.
+- Swipes: no event. The palm sat clamped at the region's left edge (x 0.00–0.06) for the whole slot and the detector lost the hand for 0.17–1.3 s at a time: the hand was at the edge of the camera's view, where MediaPipe sees only part of it.
+
+**Changed on `phase-3/reef`**
+
+- `pinch` × index-extension ramp (0 at 0.1, 1 at 0.4): the recorded fist scores pinch 0, the recorded pinch still passes press. 💡 Bent-index pinches pass from about 0.4 extension; a pinch with the index curled into the palm is a fist.
+- `point` = index × (1 − mean of ring and pinky): both recorded aimed-at-the-lens frames score ≥ 0.7; an open hand still scores 0.
+- `PINCH_FILTER` 3 → 5 Hz 💡 so a 100 ms tap reaches press.
+- Four recorded frames are regression fixtures (`tests/unit/real-hands.test.ts`).
+
+**Open**
+
+- ❓ A hand at the edge of the camera's view gets no feedback: the palm clamps to the region edge, nothing moves, swipes never form. 💡 Draw the active region on the thumbnail and switch the hint to "move your hand toward the middle" when the raw palm sits outside the region for a second. Not built.
+- Thumbs up needs a live re-check (session 1 passed; session 2 never showed one).
+- Swipes need a re-check with the hand in the middle of the view.
 
 ## Overnight notes for the morning
 
