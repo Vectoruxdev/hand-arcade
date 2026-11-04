@@ -132,7 +132,8 @@ test('by hand only: the ring, a dwell click, a pinch click, a swipe and a pass-o
   page,
 }) => {
   const errors = collectErrors(page);
-  await openSeeded(page, '#/shelf', 'Hand');
+  // Half render scale: Motes runs at the end of this test, and a CI runner has no GPU.
+  await openSeeded(page, '#/shelf', 'Hand', 0.5);
   await expect(page.locator('.card--center')).toHaveAttribute('data-game', 'motes');
 
   // Hand seen: the ring appears.
@@ -176,7 +177,9 @@ test('by hand only: the ring, a dwell click, a pinch click, a swipe and a pass-o
   await page.evaluate(() =>
     (window as unknown as { __game: { bot: { stop(): void } } }).__game.bot.stop(),
   );
-  await page.evaluate(async () => {
+  await page.evaluate(() => {
+    // One synchronous burst: the detector wants the palms apart and together within 300 ms, and a
+    // runner on software GL cannot promise two frames that close together.
     const a = (window as unknown as { __arcade: { injectHands(h: unknown[]): void } }).__arcade;
     for (let i = 0; i <= 10; i++) {
       const gap = 0.3 - i * 0.025;
@@ -184,7 +187,6 @@ test('by hand only: the ring, a dwell click, a pinch click, a swipe and a pass-o
         { id: 1, palm: { x: 0.5 - gap / 2, y: 0.5 } },
         { id: 2, palm: { x: 0.5 + gap / 2, y: 0.5 } },
       ]);
-      await new Promise((r) => setTimeout(r, 8));
     }
   });
   await expect(page.getByRole('dialog')).toContainText('Paused', { timeout: 15_000 });
