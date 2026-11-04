@@ -315,7 +315,7 @@ export class TankScene {
 
   constructor(root: HTMLElement, dpr: number, renderScale = 1) {
     this.renderer = new THREE.WebGLRenderer({
-      antialias: true,
+      antialias: renderScale >= 1, // below full scale (the e2e gates on software GL) antialiasing goes first
       alpha: false,
       powerPreference: 'high-performance',
     });

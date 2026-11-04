@@ -8,12 +8,12 @@ import { collectErrors, gameState, openSeeded } from './helpers.ts';
 const ids = (process.env['GAMES'] ?? 'motes,pop,reef').split(',').filter(Boolean);
 
 // Software GL on a CI runner is slow; the bot still gets there.
-test.setTimeout(420_000);
+test.setTimeout(900_000);
 
 for (const id of ids) {
   test(`${id}: the bot plays a full round to the results sheet`, async ({ page }) => {
     const errors = collectErrors(page);
-    await openSeeded(page, `#/play/${id}`, 'Bot', 0.5);
+    await openSeeded(page, `#/play/${id}`, 'Bot', id === 'reef' ? 0.35 : 0.5);
     await page.waitForFunction(
       () => (window as unknown as { __game?: { state(): string } }).__game?.state() === 'playing',
       null,
@@ -36,7 +36,7 @@ for (const id of ids) {
     await page.waitForFunction(
       () => (window as unknown as { __game?: { state(): string } }).__game?.state() === 'over',
       null,
-      { timeout: 180_000 },
+      { timeout: 420_000 },
     );
     const score = await page.evaluate(() =>
       (window as unknown as { __game: { score(): number } }).__game.score(),
@@ -71,7 +71,7 @@ for (const id of ids) {
       await page.waitForFunction(
         () => (window as unknown as { __game?: { state(): string } }).__game?.state() === 'over',
         null,
-        { timeout: 180_000 },
+        { timeout: 420_000 },
       );
     }
     const canvases = await page.evaluate(() => document.querySelectorAll('canvas').length);

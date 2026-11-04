@@ -4,7 +4,7 @@ import type { Page } from '@playwright/test';
 
 import { collectErrors, openSeeded } from './helpers.ts';
 
-test.setTimeout(420_000);
+test.setTimeout(900_000);
 
 interface ReefPeek {
   names: string[];
@@ -41,20 +41,20 @@ async function peek(page: Page): Promise<ReefPeek> {
 }
 
 async function visit(page: Page, name: string): Promise<ReefPeek> {
-  await openSeeded(page, '#/play/reef', name, 0.5);
+  await openSeeded(page, '#/play/reef', name, 0.35);
   await page.waitForFunction(
     () => (window as unknown as { __game?: { state(): string } }).__game?.state() === 'playing',
     null,
     { timeout: 120_000 },
   );
   await page.evaluate(() =>
-    (window as unknown as { __game: { fast(n: number): void } }).__game.fast(8),
+    (window as unknown as { __game: { fast(n: number): void } }).__game.fast(16),
   );
   const before = await peek(page);
   await page.waitForFunction(
     () => (window as unknown as { __game?: { state(): string } }).__game?.state() === 'over',
     null,
-    { timeout: 180_000 },
+    { timeout: 420_000 },
   );
   await expect(page.getByRole('dialog')).toContainText('Reef value');
   return before;
@@ -70,7 +70,7 @@ test('two profiles get their own tanks, and a tank keeps going while its owner i
   expect(bo.names.length).toBe(3);
   // Same seed rule, different profiles: the names should not be identical lists (seeded by time).
   // What matters: the saves are separate rows, so Ada's visit count is 1 and Bo's is 1, not 2.
-  await openSeeded(page, '#/play/reef', 'Ada', 0.5);
+  await openSeeded(page, '#/play/reef', 'Ada', 0.35);
   await page.waitForFunction(
     () => (window as unknown as { __game?: { state(): string } }).__game?.state() === 'playing',
     null,
@@ -107,7 +107,7 @@ test('two profiles get their own tanks, and a tank keeps going while its owner i
     save.lastVisitAt -= 12 * 3600_000;
     await saves.setSave(p.id, 'reef', save, 1);
   });
-  await openSeeded(page, '#/play/reef', 'Ada', 0.5);
+  await openSeeded(page, '#/play/reef', 'Ada', 0.35);
   await page.waitForFunction(
     () => (window as unknown as { __game?: { state(): string } }).__game?.state() === 'playing',
     null,
