@@ -15,9 +15,9 @@
   --linen-40: color-mix(in oklab, var(--linen) 40%, transparent);
   --lamp-glow: color-mix(in oklab, var(--lamp) 45%, transparent);
 
-  /* Self-hosted in Phase 1.4; until then the system face stands in. */
-  --font-display: 'Bricolage Grotesque', system-ui, sans-serif;
-  --font-body: 'Manrope', system-ui, sans-serif;
+  /* Self-hosted variable woff2 via @fontsource-variable, imported in main.ts. */
+  --font-display: 'Bricolage Grotesque Variable', 'Bricolage Grotesque', system-ui, sans-serif;
+  --font-body: 'Manrope Variable', 'Manrope', system-ui, sans-serif;
 
   --radius: 0.9rem; /* cards, sheets */
   --radius-pill: 999px;

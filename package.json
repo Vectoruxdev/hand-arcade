@@ -17,12 +17,20 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test",
+    "test:e2e": "playwright test tools/smoke.spec.ts",
     "check:games": "node scripts/check-games.ts",
-    "check": "npm run typecheck && npm run lint && npm run format:check && npm run test && npm run check:games"
+    "check": "npm run typecheck && npm run lint && npm run format:check && npm run test && npm run check:games",
+    "postinstall": "node scripts/copy-wasm.ts",
+    "capture": "CAPTURE=1 playwright test tools/capture.spec.ts",
+    "fps": "FPS=1 playwright test tools/fps.spec.ts",
+    "loud": "LOUD=1 playwright test tools/loud.spec.ts"
   },
   "dependencies": {
-    "@mediapipe/tasks-vision": "^0.10.22"
+    "@fontsource-variable/bricolage-grotesque": "^5.3.0",
+    "@fontsource-variable/manrope": "^5.3.0",
+    "@mediapipe/tasks-vision": "^0.10.22",
+    "@types/three": "^0.187.0",
+    "three": "^0.187.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",

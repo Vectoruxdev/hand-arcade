@@ -6,3 +6,5 @@ playwright-report
 *.local
 .env
 .env.*
+public/wasm/*
+!public/wasm/.gitkeep

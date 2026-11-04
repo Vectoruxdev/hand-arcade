@@ -24,6 +24,19 @@ body {
   gap: 1.2rem;
 }
 
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+[hidden] {
+  display: none !important;
+}
+
 .title {
   margin: 0;
   font-family: var(--font-display);
@@ -45,11 +58,5 @@ body {
   outline-offset: 2px;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
-  }
-}
+/* Reduced motion is handled per element in screens.css: the dwell fill and the shelf scroll stay
+   (they are feedback), the card lift becomes a cross-fade, glows stop pulsing. */

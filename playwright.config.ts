@@ -20,7 +20,15 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'], viewport, deviceScaleFactor: 2 },
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport,
+        deviceScaleFactor: 2,
+        // WebGL and audio in headless Chromium: software GL is fine for the gates that run here.
+        launchOptions: {
+          args: ['--autoplay-policy=no-user-gesture-required', '--enable-unsafe-swiftshader'],
+        },
+      },
     },
   ],
   webServer: {
