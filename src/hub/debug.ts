@@ -28,7 +28,7 @@ export function mountDebug(app: App): void {
       `camera ${app.hands.state}  source ${app.hands.source}  presence ${app.hands.presence}`,
       `delegate ${app.hands.stats.delegate ?? '–'}  detect ${app.hands.stats.detectMs.toFixed(1)} ms @ ${app.hands.stats.detectHz} Hz  ui ${fps} fps`,
       `cursor ${app.cursor.state}  modality ${app.cursor.modality}  target ${app.cursor.target?.className.split(' ')[0] ?? '–'}`,
-      `hands ${f?.hands.length ?? 0}  palm ${p ? `${p.palm.x.toFixed(2)},${p.palm.y.toFixed(2)}` : '–'}  roll ${p ? p.roll.toFixed(2) : '–'}`,
+      `hands ${f?.hands.length ?? 0}  palm ${p ? `${p.palm.x.toFixed(2)},${p.palm.y.toFixed(2)}` : '–'}  edge ${p?.edge ?? '–'}  roll ${p ? p.roll.toFixed(2) : '–'}`,
       poses,
       `motions ${f?.motions.map((m) => m.kind).join(' ') || '–'}`,
       `route ${location.hash}  profile ${app.profile?.name ?? '–'}  idle ${app.idle.level}`,

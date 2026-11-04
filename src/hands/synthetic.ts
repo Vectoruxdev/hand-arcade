@@ -4,11 +4,12 @@
 
 import type { HandFrame, TrackedHand, Vec2, Vec3 } from '../games/types.ts';
 import type { Poses } from './poses.ts';
+import { regionEdge } from './region.ts';
 
 export interface SyntheticHandSpec {
   id?: number;
   handedness?: 'left' | 'right';
-  /** Screen space, 0–1. */
+  /** Screen space, 0–1. Outside that range the hand reads as past that edge of the camera region. */
   palm: Vec2;
   poses?: Partial<Poses>;
   /** Bounding-box diagonal in screen units; 0.22 is a hand at arm's length from a laptop. */
@@ -104,6 +105,7 @@ export function syntheticHand(spec: SyntheticHandSpec): TrackedHand {
     handedness: spec.handedness ?? 'right',
     landmarks: syntheticLandmarks(spec),
     palm: { x: spec.palm.x, y: spec.palm.y },
+    edge: regionEdge(spec.palm),
     velocity: spec.velocity ?? { x: 0, y: 0 },
     size: spec.size ?? 0.22,
     poses,

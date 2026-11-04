@@ -13,6 +13,7 @@ import {
   computePoses,
   createEngine,
   palmCenter,
+  regionEdge,
   syntheticHand,
   wristRoll,
 } from '../hands/index.ts';
@@ -562,6 +563,8 @@ export class HandService {
       this.filters.set(id, f);
     }
     const mappedRaw = this.mapPoint(rawPalm);
+    // The palm is clamped to the region; `edge` remembers which side the clamp pulled it in from.
+    const edge = regionEdge(mappedRaw);
     const clamped = {
       x: Math.min(Math.max(mappedRaw.x, 0), 1),
       y: Math.min(Math.max(mappedRaw.y, 0), 1),
@@ -585,6 +588,7 @@ export class HandService {
       handedness,
       landmarks,
       palm,
+      edge,
       velocity,
       size: boundingDiagonal(mirrored),
       poses,

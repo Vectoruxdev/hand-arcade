@@ -196,9 +196,27 @@ Fist 3 s, pinch ×3, point at the lens 3 s, thumbs up, two swipes. 919 frames wi
 
 **Open**
 
-- ❓ A hand at the edge of the camera's view gets no feedback: the palm clamps to the region edge, nothing moves, swipes never form. 💡 Draw the active region on the thumbnail and switch the hint to "move your hand toward the middle" when the raw palm sits outside the region for a second. Not built.
+- [x] A hand at the edge of the camera's view gets no feedback: the palm clamps to the region edge, nothing moves, swipes never form. 💡 Draw the active region on the thumbnail and switch the hint to "move your hand toward the middle" when the raw palm sits outside the region for a second. **Built on `phase-3/edge-nudge`, see "Edge nudge" below.**
 - Thumbs up needs a live re-check (session 1 passed; session 2 never showed one).
 - Swipes need a re-check with the hand in the middle of the view.
+
+## Edge nudge (2026-11-04, branch `phase-3/edge-nudge`, stacked on `phase-3/reef`)
+
+The follow-up to webcam session 2's open item: a hand out at the edge of the camera's view now shows on the thumbnail and gets a nudge.
+
+**Shipped**
+
+- `TrackedHand.edge` 💡 (`src/games/types.ts`): `'left' | 'right' | 'top' | 'bottom' | null`, the side of `HandService.region` the raw palm is past, from the unclamped mapped palm in `HandService.track()` (`regionEdge()`, `src/hands/region.ts`; at a corner, the side it is furthest past). Synthetic hands set it from a palm outside 0–1, so `injectHands` and the bots see the same thing. Every game compiles untouched; `check:games` green. Audit row added.
+- Thumbnail (`src/hub/components/thumbnail.ts`): the region is the lit part of the picture: outside it a 40% Felt-3 shade, around it a 2-unit Linen outline at 35%; the side the primary hand is past is a 5-unit Lamp stroke with a Lamp glow. Colors are read from `tokens.css` on the first draw (`--lamp`, `--linen`, `--felt-3`), sizes are canvas units (4 ≈ 1 rem at 1080p).
+- Hint (`src/hub/app.ts`): primary hand past the region for 1 s (`OFF_REGION_MS`) → `Move your hand toward the middle` 💡 (`OFF_REGION_HINT`), cleared the frame the hand is back inside. One `applyOverride()` ranks the two hub lines: lost for 2 s wins, then the nudge, then the screen's own hint. Frames with no hand keep the timer running, because the half-visible hand at the edge is exactly the one the detector drops for up to 1.3 s at a time. `?debug=1` shows `edge`.
+- `window.__arcade.thumbnail` for the tools; `ARCADE_PORT` 💡 in `playwright.config.ts` so a second checkout can run the gates beside a running dev server on 4800 (default unchanged).
+
+**Gate (`tools/smoke.spec.ts`, bot hand on the shelf):** a hand held at x −0.2 lights the region's left edge on the thumbnail canvas within a frame (the pixel at the edge reads Lamp, r > 200), the hint is still the shelf's at 0.5 s and reads `Move your hand toward the middle` by 1.5 s, `latest().primary.edge` is `left`; a hand back at x 0.5 clears the nudge within 250 ms (before the lost-hand line could), the edge reads the quiet outline again, no console errors. Screenshot of the shelf at that moment: `docs/screenshots/edge-region-shelf.png` (and the thumbnail close-up next to it). Unit: `regionEdge` on each side, the corner rule, the raw-frame x ≤ 0.15 Jared's hand sat at, synthetic hands.
+
+**Left**
+
+- A live re-check with the webcam: the thumbnail region and the nudge were proven with synthetic hands only. Thumbs up and the swipes from session 2 still want their re-check with the hand in the middle.
+- 💡 The nudge is one line of text; a kid at the edge may not read it. If the playtest says so, the next step is the ring itself pointing toward the middle.
 
 ## Overnight notes for the morning
 

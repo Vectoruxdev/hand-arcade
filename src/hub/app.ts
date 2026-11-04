@@ -42,6 +42,10 @@ export interface App {
   setBackHoldMs(ms: number): void;
 }
 
+/** 💡 The nudge for a hand held past the camera region (webcam session 2), after this long. */
+export const OFF_REGION_HINT = 'Move your hand toward the middle';
+export const OFF_REGION_MS = 1000;
+
 export async function createApp(root: HTMLElement): Promise<App> {
   const params = new URLSearchParams(location.search);
   const bot = params.get('bot') === '1';
@@ -136,6 +140,37 @@ export async function createApp(root: HTMLElement): Promise<App> {
     }
   }
 
+  // The hub's two override lines, one function so they never fight: lost for 2 s wins, then
+  // a hand held past the camera region for 1 s, then nothing (the screen's or game's own hint).
+  let lost = false;
+  let offRegion = false;
+  let offRegionSince: number | null = null;
+  const applyOverride = () => {
+    if (lost) hint.setOverride('Show me your hand');
+    else if (offRegion) hint.setOverride(OFF_REGION_HINT);
+    else hint.setOverride(null);
+  };
+  const trackEdge = (f: HandFrame) => {
+    if (router.currentHash === '#/') return;
+    const primary = f.primary;
+    // No hand this frame: keep the timer. A half-visible hand at the edge is the one the detector
+    // drops for up to a second at a time (webcam session 2), and that is the hand this is for.
+    if (!primary) return;
+    if (primary.edge === null) {
+      offRegionSince = null;
+      if (offRegion) {
+        offRegion = false;
+        applyOverride();
+      }
+      return;
+    }
+    offRegionSince ??= f.t;
+    if (!offRegion && f.t - offRegionSince >= OFF_REGION_MS) {
+      offRegion = true;
+      applyOverride();
+    }
+  };
+
   // One frame subscription for the hub: the back hold and the current screen.
   let handFoundPlayed = false;
   hands.onFrame((f: HandFrame) => {
@@ -146,6 +181,7 @@ export async function createApp(root: HTMLElement): Promise<App> {
         audio.handFound();
       }
     }
+    trackEdge(f);
     app.backHold.update(f);
     if (!anySheetOpen()) router.current?.onFrame?.(f);
     for (const m of f.motions) {
@@ -154,9 +190,16 @@ export async function createApp(root: HTMLElement): Promise<App> {
   });
   hands.onPresence((p) => {
     // Lost for 2 s: the one line says so; the screen's own hint comes back with the hand.
-    if (p === 'lost' && hands.source === 'camera' && router.currentHash !== '#/')
-      hint.setOverride('Show me your hand');
-    else if (p === 'tracking') hint.setOverride(null);
+    if (p === 'lost') {
+      // The hand is gone, not at the edge: the nudge starts over when it comes back.
+      offRegion = false;
+      offRegionSince = null;
+      lost = hands.source === 'camera' && router.currentHash !== '#/';
+      applyOverride();
+    } else if (p === 'tracking' && lost) {
+      lost = false;
+      applyOverride();
+    }
   });
 
   // Keyboard twins that belong to the hub as a whole.
@@ -208,6 +251,7 @@ export async function createApp(root: HTMLElement): Promise<App> {
     hands,
     cursor,
     router,
+    thumbnail,
     go: (hash: string) => router.go(hash),
     inject: (frame: HandFrame) => hands.inject(frame),
     injectHands: (specs: SyntheticHandSpec[]) =>

@@ -5,6 +5,7 @@ import {
   MotionDetector,
   OneEuro,
   computePoses,
+  regionEdge,
   syntheticHand,
   syntheticLandmarks,
 } from '../../src/hands/index.ts';
@@ -214,5 +215,36 @@ describe('webcam session fixes', () => {
     for (let i = 4; i < 16; i++) feed(i * 16, []);
     for (let i = 16; i < 20; i++) feed(i * 16, [hand(7, 0.2 + i * 0.03, 0.5)]);
     expect(events).toContain('swipe-right');
+  });
+});
+
+describe('regionEdge (webcam session 2: a hand at the edge of the view)', () => {
+  it('is null inside the region and names the side a palm is past', () => {
+    expect(regionEdge({ x: 0.5, y: 0.5 })).toBeNull();
+    expect(regionEdge({ x: 0, y: 1 })).toBeNull();
+    expect(regionEdge({ x: -0.1, y: 0.5 })).toBe('left');
+    expect(regionEdge({ x: 1.2, y: 0.5 })).toBe('right');
+    expect(regionEdge({ x: 0.5, y: -0.05 })).toBe('top');
+    expect(regionEdge({ x: 0.5, y: 1.3 })).toBe('bottom');
+    // Out at a corner: the side it is furthest past.
+    expect(regionEdge({ x: -0.3, y: -0.1 })).toBe('left');
+    expect(regionEdge({ x: 1.05, y: 1.4 })).toBe('bottom');
+  });
+
+  it('reads left for a raw palm where the recorded swipes sat (x ≤ 0.15 of the frame)', () => {
+    // HandService.DEFAULT_REGION: 0.15–0.85 × 0.20–0.80 of the mirrored frame.
+    const map = (p: { x: number; y: number }) => ({
+      x: (p.x - 0.15) / 0.7,
+      y: (p.y - 0.2) / 0.6,
+    });
+    expect(regionEdge(map({ x: 0.1, y: 0.5 }))).toBe('left');
+    expect(regionEdge(map({ x: 0.15, y: 0.5 }))).toBeNull();
+    expect(regionEdge(map({ x: 0.5, y: 0.85 }))).toBe('bottom');
+  });
+
+  it('synthetic hands carry it from a palm outside 0–1', () => {
+    expect(syntheticHand({ palm: { x: 0.5, y: 0.5 } }).edge).toBeNull();
+    expect(syntheticHand({ palm: { x: -0.2, y: 0.5 } }).edge).toBe('left');
+    expect(syntheticHand({ palm: { x: 0.5, y: 1.1 } }).edge).toBe('bottom');
   });
 });
