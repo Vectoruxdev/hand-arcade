@@ -3,8 +3,7 @@ import tseslint from 'typescript-eslint';
 
 export default [
   {
-    // src/hands is the vendored kit: never linted, never edited casually (see KIT_VERSION.md).
-    ignores: ['dist', 'node_modules', 'playwright-report', 'test-results', 'src/hands/**'],
+    ignores: ['dist', 'node_modules', 'playwright-report', 'test-results', 'public'],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,

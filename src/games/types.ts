@@ -137,7 +137,14 @@ export interface GameHost {
     /** 2 s, top center. */
     toast(text: string): void;
   };
-  settings: { reducedMotion: boolean; dpr: number; dwellEnabled: boolean; bot: boolean };
+  settings: {
+    reducedMotion: boolean;
+    dpr: number;
+    dwellEnabled: boolean;
+    bot: boolean;
+    /** Timer multiplier for tests; 1 = normal. The hub sets it from window.__game.fast(). Read it every frame. */
+    fast: number;
+  };
   /** Date.now() wrapped so tests can fake it. */
   clock: { now(): number };
   /** Asks the hub for the quit confirm, then returns to the shelf. */
@@ -151,11 +158,36 @@ export interface GameInstance {
   /** Free GPU and audio; the hub then empties root. */
   destroy(): void;
   onResize?(width: number, height: number): void;
+  /** The live score, for window.__game.score() and the capture tool. */
+  score?(): number;
+}
+
+/** Helpers the hub hands a game's bot so it never imports the kit. */
+export interface BotTools {
+  /** Push a synthetic frame into the stream (the game sees it through host.hands). */
+  inject(frame: HandFrame): void;
+  /** Build a plausible TrackedHand from a palm point and pose strengths. */
+  hand(spec: {
+    id?: number;
+    palm: Vec2;
+    poses?: Partial<TrackedHand['poses']>;
+    size?: number;
+  }): TrackedHand;
+  frame(hands: TrackedHand[], motions?: MotionEvent[]): HandFrame;
+  now(): number;
+}
+
+export interface GameBot {
+  start(): void;
+  stop(): void;
+  running(): boolean;
 }
 
 export interface GameModule {
   manifest: GameManifest;
   mount(host: GameHost): GameInstance | Promise<GameInstance>;
+  /** The scripted self-player behind ?bot=1 and the capture, fps and loud tools. */
+  bot?(host: GameHost, tools: BotTools): GameBot;
 }
 
 /** Installed on window.__game by the hub at mount so the bot and the Playwright tools work. */
