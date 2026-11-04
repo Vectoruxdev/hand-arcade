@@ -2,10 +2,7 @@
 
 A full-screen family arcade run with your hands. One Vite + TypeScript app owns the camera (MediaPipe) once and hands frames to games through a small contract. v1: hub, family profiles, three leaderboards, Motes, Balloon Pop and Reef (a fish tank you tend with your hands).
 
-**The design lives in the vault, not here.** Read it before building anything:
-
-- `~/Documents/JaredBrain/01 - Projects/Hand Games Arcade/Build Plan v2 — Expanded 2026-11-03.md` (the plan: contracts, rules, numbers, 22 sessions with gates)
-- `~/Documents/JaredBrain/01 - Projects/Hand Games Arcade/CLAUDE.md` (the project router and conventions)
+**The design lives in Jared's private notes, not here.** A session with access to them reads, under `Hand Games Arcade/`, the `Build Plan v2 — Expanded 2026-11-03` (contracts, rules, numbers, 22 sessions with gates) and the project `CLAUDE.md` (router and conventions) before building anything. Without them, `STATUS.md` and `docs/kit-audit.md` carry every decision and threshold the code relies on.
 
 This file holds only what a session needs to write code that fits.
 

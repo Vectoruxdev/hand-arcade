@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "description": "A full-screen family arcade you run entirely with your hands.",
+  "license": "MIT",
   "engines": {
     "node": ">=24"
   },

@@ -6,10 +6,18 @@ Three games ship in v1: **Motes** (catch glowing motes at dusk with a pinch), **
 
 - `CLAUDE.md`: how to work here, where things are, commands.
 - `STATUS.md`: what is built, what each gate showed, the decisions made overnight.
-- The design lives in the vault (`01 - Projects/Hand Games Arcade/`).
+- The design plan lives in the author's private notes; `STATUS.md` and `docs/kit-audit.md` carry every decision and threshold the code relies on.
 
 ```bash
 npm install          # also copies the MediaPipe WASM into public/wasm
 npm run dev          # http://localhost:4800
 npm run check && npm run test:e2e
 ```
+
+## Live
+
+<https://hand-arcade-beta.vercel.app> (needs a camera and HTTPS; works with mouse, touch and keyboard without one).
+
+## License
+
+MIT, see `LICENSE`. The hand tracking runs on Google's [MediaPipe Tasks](https://github.com/google-ai-edge/mediapipe) (`@mediapipe/tasks-vision`, Apache 2.0): the hand-landmarker model in `public/models/` and the WASM files copied into `public/wasm/` at install time are MediaPipe's, under that license. Everything else, the hand kit in `src/hands/` included, was written here.
