@@ -48,3 +48,5 @@ The plan (v2, sections 1.3, 6.1, 11.5) relies on these signals. The kit was writ
 - ❓→💡 `throw` has no z-direction: the kit reports a 2D direction and speed. Reef picks the fish nearest the throw's line.
 - 💡 `pinch-tap` and `throw` are decided at release: fast release = throw, still release = tap.
 - 💡 The Cursor's pinch click and the `pinch-tap` motion both fire on a quick pinch; the hub uses the click, games can use either.
+- 💡 Reef's **glass tap is a double pinch-tap** in the middle of the tank within 400 ms (not a single pinch "toward the camera"): no z-velocity in the kit, and a single pinch anywhere would punish every stray pinch.
+- 💡 Reef **feeds on the pinch press edge** above the water line (not on the `pinch-tap` release) so flakes drop the instant a kid pinches.
