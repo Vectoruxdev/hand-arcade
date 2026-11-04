@@ -133,10 +133,11 @@ export function computePoses(l: readonly Vec3[]): Poses {
   // Index out, ring and pinky curled. The middle finger is ignored: pointing at the lens, it
   // reads straight beside the index in every recorded frame (webcam session 2).
   const point = clamp01(ei * (1 - (er + ep) / 2));
-  // A closed fist puts the thumb tip on the curled index, a pinch by the gap alone (session 2:
-  // 0.88–1.0 on every held-fist frame). A pinch keeps the index reaching out: its extension was
-  // 0.86–1.0 on contact, 0 in the fist.
-  const pinch = clamp01(1 - (pinchGap(l) - 0.25) / 0.55) * clamp01((ei - 0.1) / 0.3);
+  // Thumb tip on index tip, whatever the other fingers do. A closed fist reads as a pinch too
+  // (the thumb rests on the curled index): webcam sessions 2 and 3 found no landmark cue that
+  // separates a fist from a pinch made with the index curled, and missing those pinches would
+  // cost far more than the odd fist that presses. See docs/kit-audit.md.
+  const pinch = clamp01(1 - (pinchGap(l) - 0.25) / 0.55);
 
   const w = at(l, LM.wrist);
   const tt = at(l, LM.thumbTip);

@@ -24,14 +24,27 @@ const landmarks = (key: string): Vec3[] => {
 };
 
 describe('poses on recorded hands (Jared, 2026-11-04)', () => {
-  it('a held fist is a fist and not a pinch', () => {
-    const p = computePoses(landmarks('fist'));
-    expect(p.fist).toBeGreaterThanOrEqual(0.8);
-    expect(p.pinch).toBeLessThan(0.3);
+  it('a held fist is a fist', () => {
+    for (const key of ['fist', 'fistTight']) {
+      const p = computePoses(landmarks(key));
+      expect(p.fist, key).toBeGreaterThanOrEqual(0.8);
+      expect(p.open, key).toBeLessThan(0.2);
+      expect(p.point, key).toBeLessThan(0.3);
+    }
+    // Known: a closed fist also scores as a pinch (thumb tip on the curled index). Sessions 2 and
+    // 3 found no landmark cue that separates it from pinchClosed below, so nothing asserts it.
   });
 
-  it('thumb tip on index tip is a pinch', () => {
-    expect(computePoses(landmarks('pinch')).pinch).toBeGreaterThanOrEqual(MOTION.press);
+  it('thumb tip on index tip is a pinch, with the index straight or curled', () => {
+    for (const key of ['pinch', 'pinchClosed']) {
+      expect(computePoses(landmarks(key)).pinch, key).toBeGreaterThanOrEqual(MOTION.press);
+    }
+  });
+
+  it('a sideways thumbs up is a thumbs up', () => {
+    const p = computePoses(landmarks('thumbsUp'));
+    expect(p.thumbsUp).toBeGreaterThanOrEqual(0.8);
+    expect(p.pinch).toBeLessThan(0.3);
   });
 
   it('an index aimed at the lens is a point', () => {

@@ -189,7 +189,7 @@ Fist 3 s, pinch ×3, point at the lens 3 s, thumbs up, two swipes. 919 frames wi
 
 **Changed on `phase-3/reef`**
 
-- `pinch` × index-extension ramp (0 at 0.1, 1 at 0.4): the recorded fist scores pinch 0, the recorded pinch still passes press. 💡 Bent-index pinches pass from about 0.4 extension; a pinch with the index curled into the palm is a fist.
+- ~~`pinch` × index-extension ramp~~ — reverted in session 3: it rejected a pinch made with the index curled.
 - `point` = index × (1 − mean of ring and pinky): both recorded aimed-at-the-lens frames score ≥ 0.7; an open hand still scores 0.
 - `PINCH_FILTER` 3 → 5 Hz 💡 so a 100 ms tap reaches press.
 - Four recorded frames are regression fixtures (`tests/unit/real-hands.test.ts`).
@@ -199,6 +199,23 @@ Fist 3 s, pinch ×3, point at the lens 3 s, thumbs up, two swipes. 919 frames wi
 - ❓ A hand at the edge of the camera's view gets no feedback: the palm clamps to the region edge, nothing moves, swipes never form. 💡 Draw the active region on the thumbnail and switch the hint to "move your hand toward the middle" when the raw palm sits outside the region for a second. Not built.
 - Thumbs up needs a live re-check (session 1 passed; session 2 never showed one).
 - Swipes need a re-check with the hand in the middle of the view.
+
+## Webcam session 3 (2026-11-04, hand in the middle of the view)
+
+Fist, pinch ×3, thumbs up, swipes. The first attempt recorded nothing and found a design bug; the second gave 2,586 frames.
+
+**Found**
+
+- **Deep idle turned the camera off and nothing but the trackpad could turn it on.** Plan 7.8 released the camera after 10 minutes without input; hand frames count as input, but a released camera sees no hands. The arcade had gone dark between passes. Fixed: deep idle keeps the camera and detects one frame in fifteen (`HandService.doze`), a hand frame wakes it, verified live (`window.__arcade.idle` is exposed for this).
+- **Swipes work in the middle of the view**: seven swipe events across the slot, alternating left and right, and one more later. Pass 2's silence was the hand at the frame edge, not the detector.
+- **Thumbs up**: 1.0 for 2.2 s with the hand sideways, 1.0 again later; 0.6–0.73 with the hand facing the lens (the thumb reads shorter). Thumb sideways or down scores 0 by definition.
+- **Tight fist**: pinch 0 under session 2's gate, as designed. **But every pinch in this pass was made with the index curled** (0 extension on all 60 contact frames, against 0.86+ in session 2), and the gate rejected all three. Across both recordings nothing separates that crab-claw pinch from a fist except the thumb tip's depth, by 0.06 palm lengths. The gate is gone; `pinch` is the thumb-to-index gap again, as the plan had it, and a fist is a pinch (❓ in the audit).
+- Fixtures now hold eight recorded frames: both pinch styles, both fists, two points at the lens, open, thumbs up. `tests/unit/real-hands.test.ts` asserts them all.
+
+**Open**
+
+- ❓ A fist is a pinch. Costs: a resting fist over a card presses it; in Reef a fist above the water line feeds. Watch it in the playtest before inventing a cue.
+- The edge nudge from PR #5 (region on the thumbnail, "move your hand toward the middle") has not been seen with a real hand yet.
 
 ## Overnight notes for the morning
 
