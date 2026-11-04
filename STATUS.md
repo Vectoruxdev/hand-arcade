@@ -37,6 +37,7 @@ Jared asked for every remaining phase to be built overnight without questions. W
 - **One PR per phase** with one commit per session, merged with a merge commit once CI is green, so the next phase can branch from the last. Finer than that would be 20 PRs in one night.
 - **Placeholder covers** (`scripts/placeholder-cover.ts`) stand in until the real captures in 5.1.
 - **Reef name stays**, the top tier is the **Coral tank**, **no betta** in v1, **fish names from a per-species list** (plan decisions 1, 13 and the fish-name question).
+- **No `#/lab`.** There was no kit Lab to port; the `?debug=1` panel shows every pose and motion live, and the thresholds live in `src/hands/motions.ts` (`MOTION`), `src/hands/poses.ts` and `games/reef/gestures.ts` (`G`).
 
 ## Phase 1, Foundation (branch `phase-1/foundation`, 2026-11-03)
 

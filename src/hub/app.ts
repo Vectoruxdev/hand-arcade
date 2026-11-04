@@ -149,8 +149,10 @@ export async function createApp(root: HTMLElement): Promise<App> {
     }
   });
   hands.onPresence((p) => {
+    // Lost for 2 s: the one line says so; the screen's own hint comes back with the hand.
     if (p === 'lost' && hands.source === 'camera' && router.currentHash !== '#/')
-      hint.set('Show me your hand');
+      hint.setOverride('Show me your hand');
+    else if (p === 'tracking') hint.setOverride(null);
   });
 
   // Keyboard twins that belong to the hub as a whole.
