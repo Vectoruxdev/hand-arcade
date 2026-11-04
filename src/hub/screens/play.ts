@@ -116,7 +116,8 @@ export function playScreen(app: App): Screen {
       },
       settings: {
         reducedMotion: prefersReducedMotion(),
-        dpr: Math.min(window.devicePixelRatio || 1, 2),
+        // Bot runs (CI, captures) render at 1×: software GL in headless Chromium is the bottleneck there.
+        dpr: app.bot ? 1 : Math.min(window.devicePixelRatio || 1, 2),
         dwellEnabled: app.cursor.options.dwellEnabled,
         bot: app.bot,
         get fast() {

@@ -8,7 +8,7 @@ import { test } from '@playwright/test';
 import { openSeeded } from './helpers.ts';
 
 const ids = (process.env['CAPTURE_GAMES'] ?? 'motes,pop,reef').split(',').filter(Boolean);
-/** Seconds into the bot run for cover, 1, 2, 3. Games override via CAPTURE_TIMES="motes=3,8,15,30". */
+/** Seconds into the bot run for cover, 1, 2, 3. Games override via CAPTURE_TIMES (see below). */
 const DEFAULT_TIMES = [3, 8, 15, 30];
 
 test.skip(process.env['CAPTURE'] !== '1', 'set CAPTURE=1 to (re)capture covers and screenshots');
@@ -17,15 +17,37 @@ test.setTimeout(180_000);
 
 for (const id of ids) {
   test(`capture ${id}`, async ({ page }) => {
-    const times =
-      (process.env['CAPTURE_TIMES'] ?? '')
-        .split(',')
-        .map((s) => s.trim())
-        .find((s) => s.startsWith(`${id}=`))
-        ?.slice(id.length + 1)
-        .split(/[;\s]+/)
-        .map(Number) ?? DEFAULT_TIMES;
+    // CAPTURE_TIMES="motes=14,6,22,41;pop=25,10,36,56": seconds for cover, 1, 2, 3 per game.
+    const spec = (process.env['CAPTURE_TIMES'] ?? '')
+      .split(/[;\s]+/)
+      .map((x) => x.trim())
+      .find((x) => x.startsWith(`${id}=`));
+    const times = spec
+      ? spec
+          .slice(id.length + 1)
+          .split(',')
+          .map(Number)
+      : DEFAULT_TIMES;
     await openSeeded(page, `#/play/${id}`, 'Capture');
+    // CAPTURE_CLOCK=18:00 fakes the time of day (Reef's cover is the golden-hour frame).
+    const clock = process.env['CAPTURE_CLOCK'] ?? null;
+    if (clock) {
+      await page.evaluate(async (c) => {
+        const path = '/src/data/settings.ts';
+        const mod = (await import(/* @vite-ignore */ path)) as {
+          setSetting(k: string, v: unknown): Promise<void>;
+        };
+        await mod.setSetting('clockOverride', c);
+      }, clock);
+      await page.evaluate(() =>
+        (window as unknown as { __arcade: { go(h: string): void } }).__arcade.go('#/shelf'),
+      );
+      await page.waitForTimeout(600);
+      await page.evaluate(
+        (r) => (window as unknown as { __arcade: { go(h: string): void } }).__arcade.go(r),
+        `#/play/${id}`,
+      );
+    }
     await page.waitForFunction(
       () => (window as unknown as { __game?: { state(): string } }).__game?.state() === 'playing',
       null,

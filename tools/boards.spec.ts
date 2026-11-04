@@ -4,7 +4,7 @@ import type { Page } from '@playwright/test';
 
 import { collectErrors, openSeeded } from './helpers.ts';
 
-test.setTimeout(180_000);
+test.setTimeout(420_000);
 
 /** Writes human (non-bot) score rows for a profile through the data layer, as a real run would. */
 async function addRows(page: Page, name: string, rows: [string, number][]): Promise<void> {
@@ -38,7 +38,7 @@ async function playOnce(page: Page, id: string, name: string): Promise<number> {
   await page.waitForFunction(
     () => (window as unknown as { __game?: { state(): string } }).__game?.state() === 'playing',
     null,
-    { timeout: 60_000 },
+    { timeout: 120_000 },
   );
   await page.evaluate(() =>
     (window as unknown as { __game: { fast(n: number): void } }).__game.fast(10),
@@ -46,7 +46,7 @@ async function playOnce(page: Page, id: string, name: string): Promise<number> {
   await page.waitForFunction(
     () => (window as unknown as { __game?: { state(): string } }).__game?.state() === 'over',
     null,
-    { timeout: 90_000 },
+    { timeout: 180_000 },
   );
   return page.evaluate(() => (window as unknown as { __game: { score(): number } }).__game.score());
 }

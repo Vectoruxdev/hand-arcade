@@ -4,7 +4,7 @@ import type { Page } from '@playwright/test';
 
 import { collectErrors, openSeeded } from './helpers.ts';
 
-test.setTimeout(240_000);
+test.setTimeout(420_000);
 
 interface ReefPeek {
   names: string[];
@@ -45,7 +45,7 @@ async function visit(page: Page, name: string): Promise<ReefPeek> {
   await page.waitForFunction(
     () => (window as unknown as { __game?: { state(): string } }).__game?.state() === 'playing',
     null,
-    { timeout: 60_000 },
+    { timeout: 120_000 },
   );
   await page.evaluate(() =>
     (window as unknown as { __game: { fast(n: number): void } }).__game.fast(8),
@@ -54,7 +54,7 @@ async function visit(page: Page, name: string): Promise<ReefPeek> {
   await page.waitForFunction(
     () => (window as unknown as { __game?: { state(): string } }).__game?.state() === 'over',
     null,
-    { timeout: 120_000 },
+    { timeout: 180_000 },
   );
   await expect(page.getByRole('dialog')).toContainText('Reef value');
   return before;
@@ -74,7 +74,7 @@ test('two profiles get their own tanks, and a tank keeps going while its owner i
   await page.waitForFunction(
     () => (window as unknown as { __game?: { state(): string } }).__game?.state() === 'playing',
     null,
-    { timeout: 60_000 },
+    { timeout: 120_000 },
   );
   const adaAgain = await peek(page);
   expect(adaAgain.visits).toBe(1);
@@ -111,7 +111,7 @@ test('two profiles get their own tanks, and a tank keeps going while its owner i
   await page.waitForFunction(
     () => (window as unknown as { __game?: { state(): string } }).__game?.state() === 'playing',
     null,
-    { timeout: 60_000 },
+    { timeout: 120_000 },
   );
   const morning = await peek(page);
   expect(morning.algae).toBeGreaterThan(adaAgain.algae + 3);

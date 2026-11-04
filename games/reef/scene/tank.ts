@@ -71,7 +71,7 @@ const LIGHT: LightKey[] = [
     keyI: 0.6,
     fill: 0x6f8fc8,
     fillI: 0.3,
-    back: 0x1a3a4a,
+    back: 0x3a6a7a,
     fog: 0x1b3c48,
     shaft: 0.2,
     caustic: 0.25,
@@ -82,7 +82,7 @@ const LIGHT: LightKey[] = [
     keyI: 1.0,
     fill: 0x8fb8e0,
     fillI: 0.5,
-    back: 0x1f5a6a,
+    back: 0x3a8a9a,
     fog: 0x1e5262,
     shaft: 0.35,
     caustic: 0.45,
@@ -93,7 +93,7 @@ const LIGHT: LightKey[] = [
     keyI: 1.0,
     fill: 0x8fb8e0,
     fillI: 0.5,
-    back: 0x1f5a6a,
+    back: 0x3a8a9a,
     fog: 0x1e5262,
     shaft: 0.35,
     caustic: 0.45,
@@ -104,7 +104,7 @@ const LIGHT: LightKey[] = [
     keyI: 0.9,
     fill: 0xd9a070,
     fillI: 0.4,
-    back: 0x2a4a52,
+    back: 0x6a8a6a,
     fog: 0x264650,
     shaft: 0.45,
     caustic: 0.4,
@@ -115,7 +115,7 @@ const LIGHT: LightKey[] = [
     keyI: 0.5,
     fill: 0x5f6fc8,
     fillI: 0.3,
-    back: 0x16304a,
+    back: 0x2a4a7a,
     fog: 0x172f45,
     shaft: 0.15,
     caustic: 0.2,
@@ -782,11 +782,15 @@ export class TankScene {
     this.key.intensity = l.keyI * 1.6;
     this.fill.color.copy(l.fill);
     this.fill.intensity = l.fillI * 1.4;
-    this.back.material.uniforms['uTop']!.value = l.back;
-    this.back.material.uniforms['uBottom']!.value = l.back.clone().multiplyScalar(0.45);
+    // Lit from above: the top of the back wall takes some fill light, the bottom falls off.
+    this.back.material.uniforms['uTop']!.value = l.back
+      .clone()
+      .lerp(l.fill, 0.3)
+      .multiplyScalar(0.6 + l.keyI * 0.5);
+    this.back.material.uniforms['uBottom']!.value = l.back.clone().multiplyScalar(0.35);
     this.fog.color.copy(l.fog);
     this.caustic.material.opacity = l.caustic;
-    this.causticBack.material.opacity = l.caustic * 0.35;
+    this.causticBack.material.opacity = l.caustic * 0.22;
     for (const s of this.shafts) s.material.opacity = l.shaft;
     this.water.material.uniforms['uColor']!.value = l.fill
       .clone()
@@ -871,6 +875,12 @@ export class TankScene {
   render(): void {
     if (this.disposed) return;
     this.renderer.render(this.scene, this.camera);
+  }
+
+  /** Draw calls and triangles of the last frame, for the plan's scene budget (11.11). */
+  stats(): { calls: number; triangles: number; fish: number } {
+    const r = this.renderer.info.render;
+    return { calls: r.calls, triangles: r.triangles, fish: this.fish.length };
   }
 
   /** Nearest fish to a glass point, within `radius` tank units (ignoring depth). */

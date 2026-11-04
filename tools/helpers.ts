@@ -18,14 +18,11 @@ export async function waitForArcade(page: Page): Promise<void> {
 
 /** Open the arcade in bot mode with a seeded, active profile, landing on the route given. */
 export async function openSeeded(page: Page, route = '#/shelf', name = 'Bot'): Promise<void> {
-  await page.goto(`/?bot=1${route}`);
+  // Land on the shelf first so a play route mounts exactly once, after the profile is active.
+  await page.goto('/?bot=1#/shelf');
   await waitForArcade(page);
   await page.evaluate(async (n) => {
-    const a = (
-      window as unknown as {
-        __arcade: { seed(name: string): Promise<string>; go(h: string): void };
-      }
-    ).__arcade;
+    const a = (window as unknown as { __arcade: { seed(name: string): Promise<string> } }).__arcade;
     await a.seed(n);
   }, name);
   await page.evaluate(

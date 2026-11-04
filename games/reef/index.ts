@@ -46,7 +46,7 @@ async function mount(host: GameHost): Promise<GameInstance> {
   const gestures = new ReefGestures();
   const visit = createVisit(now);
   current = { save, visit };
-  (window as unknown as { __reef?: unknown }).__reef = current;
+  (window as unknown as { __reef?: unknown }).__reef = { ...current, stats: () => scene.stats() };
   let rngState = (save.seed + save.visits * 131) >>> 0;
   const rng = () => {
     rngState = (rngState * 1664525 + 1013904223) >>> 0;

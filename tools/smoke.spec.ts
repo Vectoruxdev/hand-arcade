@@ -13,6 +13,9 @@ import {
   waitForArcade,
 } from './helpers.ts';
 
+// Slow CI runners: software GL, no GPU. The flows are the same, just slower.
+test.setTimeout(120_000);
+
 // The smoke test. Plan v2, section 12.1: welcome → who → shelf → detail → play (bot) → results → boards.
 // Runs in bot mode (no camera). One pass by mouse and keyboard, one pass by synthetic hand.
 
@@ -167,10 +170,10 @@ test('by hand only: the ring, a dwell click, a pinch click, a swipe and a pass-o
         { id: 1, palm: { x: 0.5 - gap / 2, y: 0.5 } },
         { id: 2, palm: { x: 0.5 + gap / 2, y: 0.5 } },
       ]);
-      await new Promise((r) => requestAnimationFrame(r));
+      await new Promise((r) => setTimeout(r, 8));
     }
   });
-  await expect(page.getByRole('dialog')).toContainText('Paused');
+  await expect(page.getByRole('dialog')).toContainText('Paused', { timeout: 15_000 });
 
   // Raised open palm held → the sheet's cancel (quit confirm), then Stay.
   await holdHand(page, { palm: { x: 0.5, y: 0.05 }, poses: { open: 1 } }, 1900);
