@@ -35,7 +35,12 @@ export function welcomeScreen(app: App): Screen {
 
   const activate = async (mode: 'camera' | 'pointer') => {
     app.activated = true;
-    await Promise.allSettled([Fullscreen.request(), app.audio.resume()]);
+    // Fullscreen and audio are nice-to-haves. A browser that never answers the fullscreen
+    // request (embedded panes do this) must not keep the camera waiting.
+    await Promise.race([
+      Promise.allSettled([Fullscreen.request(), app.audio.resume()]),
+      new Promise((resolve) => setTimeout(resolve, 800)),
+    ]);
     if (mode === 'pointer' || app.bot) {
       if (!app.bot) app.hands.usePointer();
       await next();

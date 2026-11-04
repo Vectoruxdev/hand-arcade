@@ -41,6 +41,11 @@ export function dist(a: Vec2, b: Vec2): number {
   return Math.hypot(a.x - b.x, a.y - b.y);
 }
 
+/** With depth. MediaPipe's z is in about the same units as x, so a finger aimed at the camera keeps its length. */
+export function dist3(a: Vec3, b: Vec3): number {
+  return Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
+}
+
 export function at(landmarks: readonly Vec3[], i: number): Vec3 {
   const p = landmarks[i];
   if (!p) throw new Error(`hand landmark ${i} missing (${landmarks.length} given)`);
@@ -82,13 +87,14 @@ export function boundingDiagonal(l: readonly Vec3[]): number {
 
 /**
  * 0 curled … 1 straight. Ratio of tip-to-wrist over pip-to-wrist: a straight finger reaches
- * ~1.35× its PIP distance, a curled one ≤ 1.
+ * ~1.35× its PIP distance, a curled one ≤ 1. Measured in 3D: in the camera's 2D view a finger
+ * pointed at the lens looks curled (first webcam session: "point" read as "fist").
  */
 export function fingerExtension(l: readonly Vec3[], mcp: number, pip: number, tip: number): number {
   void mcp;
   const w = at(l, LM.wrist);
-  const dTip = dist(at(l, tip), w);
-  const dPip = Math.max(dist(at(l, pip), w), 1e-4);
+  const dTip = dist3(at(l, tip), w);
+  const dPip = Math.max(dist3(at(l, pip), w), 1e-4);
   return clamp01((dTip / dPip - 1.0) / 0.35);
 }
 
@@ -120,12 +126,17 @@ export function computePoses(l: readonly Vec3[]): Poses {
   const er = ext[2] ?? 0;
   const ep = ext[3] ?? 0;
   const meanExt = (ei + em + er + ep) / 4;
-  const othersCurled = 1 - (em + er + ep) / 3;
   const pl = palmLength(l);
 
   const open = meanExt;
   const fist = clamp01(1 - meanExt);
-  const point = clamp01(ei * othersCurled);
+  // Index out, ring and pinky curled. The middle finger is ignored: pointing at the lens, it
+  // reads straight beside the index in every recorded frame (webcam session 2).
+  const point = clamp01(ei * (1 - (er + ep) / 2));
+  // Thumb tip on index tip, whatever the other fingers do. A closed fist reads as a pinch too
+  // (the thumb rests on the curled index): webcam sessions 2 and 3 found no landmark cue that
+  // separates a fist from a pinch made with the index curled, and missing those pinches would
+  // cost far more than the odd fist that presses. See docs/kit-audit.md.
   const pinch = clamp01(1 - (pinchGap(l) - 0.25) / 0.55);
 
   const w = at(l, LM.wrist);

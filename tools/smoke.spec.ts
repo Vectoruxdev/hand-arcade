@@ -13,6 +13,9 @@ import {
   waitForArcade,
 } from './helpers.ts';
 
+// Slow CI runners: software GL, no GPU. The flows are the same, just slower.
+test.setTimeout(120_000);
+
 // The smoke test. Plan v2, section 12.1: welcome → who → shelf → detail → play (bot) → results → boards.
 // Runs in bot mode (no camera). One pass by mouse and keyboard, one pass by synthetic hand.
 
@@ -81,9 +84,20 @@ test('by mouse and keyboard: create a player, browse, play a stub, see the resul
   await page.keyboard.press('p');
   await expect(page.getByRole('dialog')).toContainText('Paused');
   await page.getByRole('button', { name: 'Resume' }).click();
-  await page.keyboard.press('s');
+  // Motes is the real game now: let its bot finish a fast round and read the score it banks.
+  await page.evaluate(() =>
+    (window as unknown as { __game: { fast(n: number): void } }).__game.fast(10),
+  );
+  await page.waitForFunction(
+    () => (window as unknown as { __game?: { state(): string } }).__game?.state() === 'over',
+    null,
+    { timeout: 120_000 },
+  );
+  const banked = await page.evaluate(() =>
+    (window as unknown as { __game: { score(): number } }).__game.score(),
+  );
   await expect(page.getByRole('dialog')).toContainText('bot run');
-  await expect(page.locator('.sheet__big')).toHaveText('42');
+  await expect(page.locator('.sheet__big')).toHaveText(String(banked));
   expect(await gameState(page)).toBe('over');
   await page.getByRole('button', { name: 'Play again' }).click();
   await page.waitForFunction(
@@ -118,7 +132,8 @@ test('by hand only: the ring, a dwell click, a pinch click, a swipe and a pass-o
   page,
 }) => {
   const errors = collectErrors(page);
-  await openSeeded(page, '#/shelf', 'Hand');
+  // Half render scale: Motes runs at the end of this test, and a CI runner has no GPU.
+  await openSeeded(page, '#/shelf', 'Hand', 0.5);
   await expect(page.locator('.card--center')).toHaveAttribute('data-game', 'motes');
 
   // Hand seen: the ring appears.
@@ -158,8 +173,13 @@ test('by hand only: the ring, a dwell click, a pinch click, a swipe and a pass-o
     () => (window as unknown as { __game?: { state(): string } }).__game?.state() === 'playing',
   );
 
-  // Clap pauses.
-  await page.evaluate(async () => {
+  // Clap pauses. The game's own bot is driving a hand; stop it so the test's two hands are the frame.
+  await page.evaluate(() =>
+    (window as unknown as { __game: { bot: { stop(): void } } }).__game.bot.stop(),
+  );
+  await page.evaluate(() => {
+    // One synchronous burst: the detector wants the palms apart and together within 300 ms, and a
+    // runner on software GL cannot promise two frames that close together.
     const a = (window as unknown as { __arcade: { injectHands(h: unknown[]): void } }).__arcade;
     for (let i = 0; i <= 10; i++) {
       const gap = 0.3 - i * 0.025;
@@ -167,10 +187,9 @@ test('by hand only: the ring, a dwell click, a pinch click, a swipe and a pass-o
         { id: 1, palm: { x: 0.5 - gap / 2, y: 0.5 } },
         { id: 2, palm: { x: 0.5 + gap / 2, y: 0.5 } },
       ]);
-      await new Promise((r) => requestAnimationFrame(r));
     }
   });
-  await expect(page.getByRole('dialog')).toContainText('Paused');
+  await expect(page.getByRole('dialog')).toContainText('Paused', { timeout: 15_000 });
 
   // Raised open palm held → the sheet's cancel (quit confirm), then Stay.
   await holdHand(page, { palm: { x: 0.5, y: 0.05 }, poses: { open: 1 } }, 1900);

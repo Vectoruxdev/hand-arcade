@@ -54,6 +54,7 @@ const info = await page.evaluate(() => {
   const w = window as unknown as {
     __game?: { state(): string; score(): number; bot: { running(): boolean } };
     __reef?: {
+      stats?(): unknown;
       visit: { fed: boolean; cleaned: boolean; tutorial: unknown; flakes: unknown[] };
       save: {
         visits: number;
@@ -69,6 +70,7 @@ const info = await page.evaluate(() => {
     state: g?.state() ?? null,
     score: g?.score() ?? null,
     bot: g?.bot.running() ?? null,
+    stats: r?.stats?.() ?? null,
     reef: r
       ? {
           fed: r.visit.fed,

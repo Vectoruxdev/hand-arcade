@@ -176,13 +176,13 @@ export class MotesScene {
   private height = 1;
   private disposed = false;
 
-  constructor(root: HTMLElement, dpr: number) {
+  constructor(root: HTMLElement, dpr: number, renderScale = 1) {
     this.renderer = new THREE.WebGLRenderer({
       antialias: false,
       alpha: false,
       powerPreference: 'high-performance',
     });
-    this.renderer.setPixelRatio(Math.min(dpr, 1.5));
+    this.renderer.setPixelRatio(Math.min(dpr, 1.5) * renderScale);
     this.renderer.setClearColor(0x16213a, 1);
     this.canvas = this.renderer.domElement;
     this.canvas.style.position = 'absolute';

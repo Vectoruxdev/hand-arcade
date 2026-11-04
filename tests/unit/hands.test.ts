@@ -8,7 +8,7 @@ import {
   syntheticHand,
   syntheticLandmarks,
 } from '../../src/hands/index.ts';
-import type { TrackedHand } from '../../src/games/types.ts';
+import type { TrackedHand, Vec3 } from '../../src/games/types.ts';
 
 // The kit audit (docs/kit-audit.md): every signal the plan relies on is reachable with the
 // thresholds the plan uses, driven by the same synthetic hands the bot and the smoke test use.
@@ -166,5 +166,53 @@ describe('MotionDetector', () => {
     }
     expect(last).not.toBeNull();
     expect(last ?? 0).toBeGreaterThan(1.4);
+  });
+});
+
+// Found in the first webcam session (STATUS.md, 2026-11-04).
+describe('webcam session fixes', () => {
+  it('point survives the index finger being aimed at the camera', () => {
+    const l = syntheticLandmarks({ palm: { x: 0.5, y: 0.5 }, poses: { point: 1, open: 0 } });
+    const mcp = l[5] as Vec3;
+    // Fold the index chain toward the lens: 30% of its length stays in the picture, the rest is depth.
+    for (const i of [6, 7, 8]) {
+      const p = l[i] as Vec3;
+      const ox = p.x - mcp.x;
+      const oy = p.y - mcp.y;
+      const len = Math.hypot(ox, oy);
+      l[i] = { x: mcp.x + ox * 0.3, y: mcp.y + oy * 0.3, z: -len * 0.95 };
+    }
+    expect(computePoses(l).point).toBeGreaterThanOrEqual(0.7);
+  });
+
+  it('two thumbs up do not steer; two fists do', () => {
+    const run = (poses: Partial<TrackedHand['poses']>) => {
+      const m = new MotionDetector();
+      let steers = 0;
+      for (let i = 0; i <= 30; i++) {
+        const a = i * 0.02;
+        const hands = [
+          hand(1, 0.5 - 0.15 * Math.cos(a), 0.5 - 0.15 * Math.sin(a), poses),
+          hand(2, 0.5 + 0.15 * Math.cos(a), 0.5 + 0.15 * Math.sin(a), poses),
+        ];
+        for (const e of m.update(hands, i * 20)) if (e.kind === 'steer') steers++;
+      }
+      return steers;
+    };
+    expect(run({ fist: 1, open: 0 })).toBeGreaterThan(0);
+    expect(run({ thumbsUp: 1, fist: 1, open: 0 })).toBe(0);
+  });
+
+  it('a swipe survives a 200 ms detector dropout', () => {
+    const m = new MotionDetector();
+    const events: string[] = [];
+    const feed = (t: number, hands: TrackedHand[]) => {
+      for (const e of m.update(hands, t)) events.push(e.kind);
+    };
+    // 1.9 widths/s to the right at 60 Hz, blurred out of detection for 12 frames in the middle.
+    for (let i = 0; i < 4; i++) feed(i * 16, [hand(7, 0.2 + i * 0.03, 0.5)]);
+    for (let i = 4; i < 16; i++) feed(i * 16, []);
+    for (let i = 16; i < 20; i++) feed(i * 16, [hand(7, 0.2 + i * 0.03, 0.5)]);
+    expect(events).toContain('swipe-right');
   });
 });

@@ -12,11 +12,11 @@ import {
   boundingDiagonal,
   computePoses,
   createEngine,
-  dist,
   palmCenter,
   syntheticHand,
   wristRoll,
 } from '../hands/index.ts';
+import { HandTracker } from '../hands/tracker.ts';
 import type { Engine, EngineOptions, OneEuroOptions, SyntheticHandSpec } from '../hands/index.ts';
 
 export type CameraState =
@@ -36,8 +36,10 @@ export interface CameraRegion {
 export const DEFAULT_REGION: CameraRegion = { x0: 0.15, x1: 0.85, y0: 0.2, y1: 0.8 };
 
 export const PRESENCE = { holdMs: 400, briefMs: 2000 } as const;
-export const PRIMARY = { ratio: 1.2, stickyMs: 1000, matchDistance: 0.25 } as const;
+export const PRIMARY = { ratio: 1.2, stickyMs: 1000 } as const;
 export const BUDGET = { slowMs: 25, slowForMs: 3000, fastMs: 15 } as const;
+/** Deep idle keeps the camera and detects one frame in `every` (≈4 Hz at 60 Hz), enough for a hand to wake the hub. */
+export const DOZE = { every: 15 } as const;
 
 export interface HandServiceOptions {
   region?: CameraRegion;
@@ -53,11 +55,6 @@ interface HandFilters {
   pinch: OneEuro;
   lastPalm: Vec2 | null;
   lastT: number;
-}
-
-interface PrevHand {
-  id: number;
-  rawPalm: Vec2;
 }
 
 export interface HandStats {
@@ -93,14 +90,14 @@ export class HandService {
   private raf = 0;
   private running = false;
   private filters = new Map<number, HandFilters>();
-  private prev: PrevHand[] = [];
-  private nextId = 1;
+  private tracker = new HandTracker();
   private primaryId: number | null = null;
   private challenger: { id: number; since: number } | null = null;
   private lastSeenT = -Infinity;
   private lastVideoTime = -1;
   private frameCounter = 0;
   private detectEvery = 1;
+  private dozeEvery = 1;
   private slowSince: number | null = null;
   private fastSince: number | null = null;
   private detectTimes: number[] = [];
@@ -217,12 +214,25 @@ export class HandService {
     }
     this.source = 'camera';
     this.motions.reset();
+    this.tracker.reset();
     this.setState('tracking');
     this.startLoop();
     return this.state;
   }
 
   /** Releases the camera (Welcome, or 10 min idle). Permission persists, so the next start is silent. */
+  /**
+   * Deep idle: keep the camera, detect at a trickle. 💡 Plan 7.8 said release the camera after
+   * 10 minutes; a released camera cannot see the hand that should wake the hub (webcam session 3).
+   */
+  doze(on: boolean): void {
+    this.dozeEvery = on ? DOZE.every : 1;
+  }
+
+  get dozing(): boolean {
+    return this.dozeEvery > 1;
+  }
+
   stopCamera(): void {
     this.releaseStream();
     if (this.source === 'camera') {
@@ -236,6 +246,7 @@ export class HandService {
     this.releaseStream();
     this.source = 'pointer';
     this.motions.reset();
+    this.tracker.reset();
     if (this.state === 'tracking' || this.state === 'idle' || this.state === 'requesting')
       this.setState('pointer');
     this.startLoop();
@@ -246,6 +257,7 @@ export class HandService {
     this.releaseStream();
     this.source = 'bot';
     this.motions.reset();
+    this.tracker.reset();
     this.setState('pointer');
     this.startLoop();
   }
@@ -407,7 +419,7 @@ export class HandService {
     if (v.currentTime === this.lastVideoTime) return;
     this.lastVideoTime = v.currentTime;
     this.frameCounter++;
-    if (this.frameCounter % this.detectEvery !== 0) return;
+    if (this.frameCounter % Math.max(this.detectEvery, this.dozeEvery) !== 0) return;
 
     const t0 = performance.now();
     let raw;
@@ -421,10 +433,14 @@ export class HandService {
     this.recordDetect(dt, now);
 
     this.lastRawHands = raw.map((h) => h.landmarks.map((p) => ({ x: 1 - p.x, y: p.y })));
-    const hands = raw.map((h) => {
-      const mirrored = h.landmarks.map((p) => ({ x: 1 - p.x, y: p.y, z: p.z }));
-      return this.track(mirrored, h.handedness, now);
-    });
+    const mirrored = raw.map((h) => h.landmarks.map((p) => ({ x: 1 - p.x, y: p.y, z: p.z })));
+    const ids = this.tracker.assign(
+      mirrored.map((l) => palmCenter(l)),
+      now,
+    );
+    const hands = mirrored.map((l, i) =>
+      this.track(l, raw[i]?.handedness ?? 'right', ids[i] ?? 0, now),
+    );
     this.finishFrame(hands, now, 'camera');
   }
 
@@ -542,21 +558,13 @@ export class HandService {
     return { x: (p.x - r.x0) / (r.x1 - r.x0), y: (p.y - r.y0) / (r.y1 - r.y0) };
   }
 
-  private track(mirrored: Vec3[], handedness: 'left' | 'right', now: number): TrackedHand {
+  private track(
+    mirrored: Vec3[],
+    handedness: 'left' | 'right',
+    id: number,
+    now: number,
+  ): TrackedHand {
     const rawPalm = palmCenter(mirrored);
-    // Match to the previous frame's hands by palm distance; else a new id.
-    let id: number | null = null;
-    let best: number = PRIMARY.matchDistance;
-    for (const p of this.prev) {
-      const d = dist(p.rawPalm, rawPalm);
-      if (d < best) {
-        best = d;
-        id = p.id;
-      }
-    }
-    if (id === null) id = this.nextId++;
-    this.prev = this.prev.filter((p) => p.id !== id);
-    this.prev.push({ id, rawPalm });
 
     let f = this.filters.get(id);
     if (!f) {
@@ -601,9 +609,8 @@ export class HandService {
 
   /** Largest hand leads; a challenger must be 20% larger for 1 s (plan 2.5). Drops stale filters. */
   private pickPrimary(hands: TrackedHand[], now: number): TrackedHand[] {
-    const ids = new Set(hands.map((h) => h.id));
-    for (const id of [...this.filters.keys()]) if (!ids.has(id)) this.filters.delete(id);
-    this.prev = this.prev.filter((p) => ids.has(p.id));
+    const live = this.tracker.live();
+    for (const id of [...this.filters.keys()]) if (!live.has(id)) this.filters.delete(id);
     if (hands.length === 0) {
       this.primaryId = null;
       this.challenger = null;

@@ -40,7 +40,12 @@ export function syntheticLandmarks(spec: SyntheticHandSpec): Vec3[] {
   const mcpX = [-0.45, -0.15, 0.15, 0.45].map((f) => f * pl * side);
   const mcpY = -pl * 0.45;
   const fingers = [
-    { mcp: 5, len: 1.0, ext: poses.point > 0.5 ? 1 : 1 - curl },
+    // A pinching index reaches out to the thumb: at least three-quarters straight (webcam session 2).
+    {
+      mcp: 5,
+      len: 1.0,
+      ext: poses.point > 0.5 ? 1 : poses.pinch > 0.5 ? Math.max(0.75, 1 - curl) : 1 - curl,
+    },
     { mcp: 9, len: 1.1, ext: poses.point > 0.5 ? 0.2 : 1 - curl },
     { mcp: 13, len: 1.0, ext: poses.point > 0.5 ? 0.2 : 1 - curl },
     { mcp: 17, len: 0.8, ext: poses.point > 0.5 ? 0.2 : 1 - curl },

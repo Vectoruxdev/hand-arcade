@@ -5,3 +5,6 @@ playwright-report
 package-lock.json
 public
 *.md
+
+# Recorded hand frames are data, not code.
+tests/fixtures/

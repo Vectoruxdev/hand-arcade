@@ -27,7 +27,7 @@ function mount(host: GameHost): GameInstance {
   style.textContent = STYLE;
   host.root.appendChild(style);
 
-  const scene = new MotesScene(host.root, host.settings.dpr);
+  const scene = new MotesScene(host.root, host.settings.dpr, host.settings.renderScale);
   const audio = new MotesAudio(host);
   const hud = document.createElement('div');
   hud.className = 'motes-hud';

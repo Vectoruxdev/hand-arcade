@@ -31,6 +31,8 @@ export interface App {
   profile: Profile | null;
   root: HTMLElement;
   bot: boolean;
+  /** From ?render=; games multiply their pixel ratio by it. */
+  renderScale: number;
   toast(text: string): void;
   setProfile(id: string | null): Promise<void>;
   /** The Welcome click: fullscreen, audio, camera. */
@@ -43,6 +45,7 @@ export interface App {
 export async function createApp(root: HTMLElement): Promise<App> {
   const params = new URLSearchParams(location.search);
   const bot = params.get('bot') === '1';
+  const renderScale = Math.min(Math.max(Number(params.get('render') ?? '1') || 1, 0.25), 1);
   const settings = await getSettings();
 
   const hands = HandService.create({
@@ -86,6 +89,7 @@ export async function createApp(root: HTMLElement): Promise<App> {
     profile: null,
     root,
     bot,
+    renderScale,
     activated: false,
     toast: showToast,
     async setProfile(id) {
@@ -149,8 +153,10 @@ export async function createApp(root: HTMLElement): Promise<App> {
     }
   });
   hands.onPresence((p) => {
+    // Lost for 2 s: the one line says so; the screen's own hint comes back with the hand.
     if (p === 'lost' && hands.source === 'camera' && router.currentHash !== '#/')
-      hint.set('Show me your hand');
+      hint.setOverride('Show me your hand');
+    else if (p === 'tracking') hint.setOverride(null);
   });
 
   // Keyboard twins that belong to the hub as a whole.
@@ -182,18 +188,12 @@ export async function createApp(root: HTMLElement): Promise<App> {
     }
   });
 
-  // Idle: dim, drift (the shelf listens), release the camera after 10 minutes.
-  let cameraReleasedByIdle = false;
+  // Idle: dim, drift (the shelf listens). Deep idle keeps the camera and detects at a trickle so
+  // a hand can wake the hub. 💡 Not plan 7.8's "release after 10 minutes": a released camera
+  // cannot see the hand that should wake it (webcam session 3 lost a whole pass to this).
   idle.onChange((level) => {
     document.documentElement.dataset['idle'] = level;
-    if (level === 'deep' && hands.source === 'camera' && hands.state === 'tracking') {
-      hands.stopCamera();
-      cameraReleasedByIdle = true;
-    }
-    if (level === 'awake' && cameraReleasedByIdle) {
-      cameraReleasedByIdle = false;
-      void hands.startCamera();
-    }
+    hands.doze(level === 'deep');
   });
   document.documentElement.dataset['idle'] = 'awake';
 
@@ -202,6 +202,7 @@ export async function createApp(root: HTMLElement): Promise<App> {
     hands,
     cursor,
     router,
+    idle,
     go: (hash: string) => router.go(hash),
     inject: (frame: HandFrame) => hands.inject(frame),
     injectHands: (specs: SyntheticHandSpec[]) =>
