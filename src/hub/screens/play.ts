@@ -160,17 +160,31 @@ export function playScreen(app: App): Screen {
     (window as unknown as { __game?: GameDebugHook }).__game = hook;
   };
 
+  let mountSeq = 0;
+
   const mountGame = async () => {
     const m = manifest();
     if (!m || !gameRoot) return;
+    const token = ++mountSeq;
     setState('loading');
     submitted = false;
     lastScore = 0;
     if (loading) loading.hidden = false;
     try {
       module ??= await loadGame(id);
+      if (token !== mountSeq) return; // unmounted or remounted while loading
       const host = makeHost();
-      instance = await module.mount(host);
+      const mounted = await module.mount(host);
+      if (token !== mountSeq) {
+        // The screen went away while the game was mounting: never let a stale instance run.
+        try {
+          mounted.destroy();
+        } catch {
+          /* ignore */
+        }
+        return;
+      }
+      instance = mounted;
       if (loading) loading.hidden = true;
       setState('playing');
       instance.resume();
@@ -190,6 +204,7 @@ export function playScreen(app: App): Screen {
   };
 
   const destroyGame = () => {
+    mountSeq++;
     bot?.stop();
     bot = null;
     resizeObs?.disconnect();
