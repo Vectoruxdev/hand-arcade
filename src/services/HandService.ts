@@ -38,6 +38,8 @@ export const DEFAULT_REGION: CameraRegion = { x0: 0.15, x1: 0.85, y0: 0.2, y1: 0
 export const PRESENCE = { holdMs: 400, briefMs: 2000 } as const;
 export const PRIMARY = { ratio: 1.2, stickyMs: 1000 } as const;
 export const BUDGET = { slowMs: 25, slowForMs: 3000, fastMs: 15 } as const;
+/** Deep idle keeps the camera and detects one frame in `every` (≈4 Hz at 60 Hz), enough for a hand to wake the hub. */
+export const DOZE = { every: 15 } as const;
 
 export interface HandServiceOptions {
   region?: CameraRegion;
@@ -95,6 +97,7 @@ export class HandService {
   private lastVideoTime = -1;
   private frameCounter = 0;
   private detectEvery = 1;
+  private dozeEvery = 1;
   private slowSince: number | null = null;
   private fastSince: number | null = null;
   private detectTimes: number[] = [];
@@ -218,6 +221,18 @@ export class HandService {
   }
 
   /** Releases the camera (Welcome, or 10 min idle). Permission persists, so the next start is silent. */
+  /**
+   * Deep idle: keep the camera, detect at a trickle. 💡 Plan 7.8 said release the camera after
+   * 10 minutes; a released camera cannot see the hand that should wake the hub (webcam session 3).
+   */
+  doze(on: boolean): void {
+    this.dozeEvery = on ? DOZE.every : 1;
+  }
+
+  get dozing(): boolean {
+    return this.dozeEvery > 1;
+  }
+
   stopCamera(): void {
     this.releaseStream();
     if (this.source === 'camera') {
@@ -404,7 +419,7 @@ export class HandService {
     if (v.currentTime === this.lastVideoTime) return;
     this.lastVideoTime = v.currentTime;
     this.frameCounter++;
-    if (this.frameCounter % this.detectEvery !== 0) return;
+    if (this.frameCounter % Math.max(this.detectEvery, this.dozeEvery) !== 0) return;
 
     const t0 = performance.now();
     let raw;

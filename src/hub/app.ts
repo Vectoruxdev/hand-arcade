@@ -188,18 +188,12 @@ export async function createApp(root: HTMLElement): Promise<App> {
     }
   });
 
-  // Idle: dim, drift (the shelf listens), release the camera after 10 minutes.
-  let cameraReleasedByIdle = false;
+  // Idle: dim, drift (the shelf listens). Deep idle keeps the camera and detects at a trickle so
+  // a hand can wake the hub. 💡 Not plan 7.8's "release after 10 minutes": a released camera
+  // cannot see the hand that should wake it (webcam session 3 lost a whole pass to this).
   idle.onChange((level) => {
     document.documentElement.dataset['idle'] = level;
-    if (level === 'deep' && hands.source === 'camera' && hands.state === 'tracking') {
-      hands.stopCamera();
-      cameraReleasedByIdle = true;
-    }
-    if (level === 'awake' && cameraReleasedByIdle) {
-      cameraReleasedByIdle = false;
-      void hands.startCamera();
-    }
+    hands.doze(level === 'deep');
   });
   document.documentElement.dataset['idle'] = 'awake';
 
@@ -208,6 +202,7 @@ export async function createApp(root: HTMLElement): Promise<App> {
     hands,
     cursor,
     router,
+    idle,
     go: (hash: string) => router.go(hash),
     inject: (frame: HandFrame) => hands.inject(frame),
     injectHands: (specs: SyntheticHandSpec[]) =>
