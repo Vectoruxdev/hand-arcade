@@ -55,6 +55,7 @@ Test hooks: `window.__arcade` (seed, go, injectHands, state), `window.__game` (s
 npm run dev          # http://localhost:4800 (strict port; the tools expect it)
 npm run check        # typecheck + lint + prettier + vitest + check:games
 npm run test:e2e     # Playwright: smoke, games, boards, reef (first time: npx playwright install chromium)
+ARCADE_BASE_URL=https://hand-arcade-beta.vercel.app npm run test:live   # the same gates against the deployed arcade
 npm run capture      # CAPTURE_GAMES=reef CAPTURE_CLOCK=18:00 CAPTURE_TIMES="reef=7,12,18,24" → games/<id>/*.jpg
 npm run fps          # FPS_ROUTES='#/shelf,#/play/motes' → p50 / worst-1% frame time at dpr 2
 npm run loud         # peak dBFS of each game's bot run (gate −6)

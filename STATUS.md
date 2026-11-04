@@ -217,11 +217,21 @@ Fist, pinch ×3, thumbs up, swipes. The first attempt recorded nothing and found
 - ❓ A fist is a pinch. Costs: a resting fist over a card presses it; in Reef a fist above the water line feeds. Watch it in the playtest before inventing a cue.
 - The edge nudge from PR #5 (region on the thumbnail, "move your hand toward the middle") has not been seen with a real hand yet.
 
+## Deployed (2026-11-04)
+
+**Live at <https://hand-arcade-beta.vercel.app>** (production; `hand-arcade-jared-vectoruxcoms-projects.vercel.app` is the same deployment). Vercel project `hand-arcade` on team `jared-vectoruxcoms-projects`, framework Vite, Node 24, built on Vercel from the `phase-3/reef` checkout at `d63fd59`: PRs #2, #3 and #4 together. PR #5's edge nudge is not in it.
+
+- **No Git link.** The team is on the Hobby plan, which refuses a private repository owned by an organization (`Vectoruxdev`), so a push deploys nothing. Deploys come from the CLI: `vercel deploy --prod` in a linked checkout (`.vercel/` is gitignored; a fresh clone links with `vercel link --yes --project hand-arcade --scope jared-vectoruxcoms-projects`). Deploy-on-push needs one of: the repo public, the repo under a personal GitHub account, or a Pro team; then Vercel → Settings → Git → connect.
+- **Deployment Protection** is Vercel's standard setting: the production domain is open to anyone; preview deployments (`vercel deploy` without `--prod`) and the per-deployment production URL ask for a Vercel login.
+- **Checked live:** the Welcome screen renders, the hand-landmarker model (7.8 MB) and the wasm load over HTTPS and MediaPipe's graph starts, and the PWA manifest and service worker are served.
+- **Gates against the live URL (`npm run test:live`): 6 of 6.** Welcome renders with no errors; the mouse-and-keyboard path (player, browse, play, results, boards); the hand-only path (ring, dwell, pinch, swipe, pass-over); and every bot to its results sheet (Motes 22 s, Pop 28 s, Reef 11 s). The boards and reef gates stay dev-server-only: they import `src/data` modules through Vite, which a built site does not serve.
+- `npm run test:live` runs the smoke and games gates against a deployment: `ARCADE_BASE_URL=https://hand-arcade-beta.vercel.app npm run test:live` (`playwright.live.config.ts` reuses the main config without the dev server).
+
 ## Overnight notes for the morning
 
 - **CI is green on PR #4** (the whole stack: 8 of 8 e2e gates, 3m43s) and on PR #2. PR #3's check is stale red because its branch predates the hardening below; #4 contains everything, so the stack is proven.
 - **CI on PR #3 failed once** on the GitHub runner's software GL: Motes and Reef play-again cycles overran the 120 s test timeout, the clap in smoke test 3 missed because its frames were paced by a throttled rAF, and smoke test 2 hit the 30 s default. Fixes on `phase-3/reef`: bot runs render at pixel ratio 1, play-again cycles cut from four to two, timeouts raised, clap frames on a timer, the bot check waits instead of asserting, and test setup seeds from the shelf so play routes mount once.
 - **Real captures** replaced the placeholders for all three games (`npm run capture`); Reef's at `CAPTURE_CLOCK=18:00`.
-- **Vercel (5.2) is yours to click.** The auto-mode classifier refused to create the Vercel project (it counts as a production deploy), and a CLI deploy would be the same thing by another road, so nothing was deployed. The PWA build is verified locally (`npm run build`, then `npx vite preview`). To deploy: in Vercel (team `jared-vectoruxcoms-projects`) → Add New → Project → import `Vectoruxdev/hand-arcade` (framework Vite, build `npm run build`, output `dist`, Node 24) → after it builds, Settings → Deployment Protection → turn Vercel Authentication **off** for production (and previews, if the family computer should open branch previews). Production deploys from `main`, so merge #2 → #3 → #4 first, or the live site is the Phase 0 page.
+- **Vercel (5.2): deployed 2026-11-04 from the CLI**, see "Deployed" above. The auto-mode classifier had refused it overnight; with Jared asking, the project was created, and the Hobby plan's private-org-repo rule is why there is no Git link.
 - **5.3, the family playtest,** is the one session nobody can do overnight: `docs/playtest-log.md` is ready for it.
 - **Real webcam: tried 2026-11-04.** See "Webcam session 1" above for what worked, what was fixed and what is still open.

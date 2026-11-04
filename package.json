@@ -18,6 +18,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test tools/smoke.spec.ts tools/games.spec.ts tools/boards.spec.ts tools/reef.spec.ts",
+    "test:live": "playwright test -c playwright.live.config.ts tools/smoke.spec.ts tools/games.spec.ts",
     "check:games": "node scripts/check-games.ts",
     "check": "npm run typecheck && npm run lint && npm run format:check && npm run test && npm run check:games",
     "postinstall": "node scripts/copy-wasm.ts",
