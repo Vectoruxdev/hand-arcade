@@ -20,17 +20,20 @@ This file holds only what a session needs to write code that fits.
 ## Where things are
 
 ```text
-src/hands/       the vendored kit from open-source-hands (see KIT_VERSION.md). Not linted. Edit only with a line in KIT_VERSION.md.
-src/services/    HandService, Cursor, Audio, Fullscreen, Idle (Phase 1)
+src/hands/       the hand kit, written in-house on MediaPipe (KIT_VERSION.md, docs/kit-audit.md). Linted like everything else.
+src/services/    HandService (one camera, states, mirroring, region, primary hand, presence), Cursor (ring, dwell, pinch, snap, drag), Audio, Fullscreen, Idle
 src/data/        db.ts (IndexedDB wrapper), schema, profiles/saves/scores/settings, points.ts, boards.ts, backup.ts
-src/hub/         router, screens, components, styles (tokens.css is the design system)
-src/games/       types.ts (the contract), registry.ts, bot.ts
-games/<id>/      one folder per game: manifest.ts (eager, tiny) + index.ts (lazy) + cover.jpg + 1.jpg 2.jpg 3.jpg
-scripts/         check-games.ts and friends; run with plain `node` on Node 24 (type stripping)
-tools/           Playwright: smoke.spec.ts now; capture, fps, loud come with the kit
-tests/unit/      Vitest
+src/hub/         app.ts (context + window.__arcade), router, screens/ (welcome, who, shelf, detail, play, boards), components/, styles/ (tokens.css is the design system)
+src/games/       types.ts (the contract), registry.ts
+games/<id>/      one folder per game: manifest.ts (eager, tiny) + index.ts (lazy) + cover.jpg + 1.jpg 2.jpg 3.jpg; reef/ has scene/, simulate.ts, visit.ts, gestures.ts, hud.ts, shop.ts
+scripts/         check-games.ts, copy-wasm.ts (postinstall), placeholder-cover.ts, icons.ts, shot.ts (CLOCK=18:00 node scripts/shot.ts '#/play/reef' 8 out.png [fast]); plain `node` on Node 24
+tools/           Playwright: smoke, games (every bot to the results sheet), boards, reef (two tanks overnight); opt-in capture (CAPTURE=1), fps (FPS=1), loud (LOUD=1); helpers.ts
+tests/unit/      Vitest: kit thresholds, data layer, points and boards, the Reef simulation, the manifest checker
+public/          models/hand_landmarker.task (committed), wasm/ (copied on postinstall, gitignored), icons/
 docs/            kit-audit.md, playtest-log.md
 ```
+
+Test hooks: `window.__arcade` (seed, go, injectHands, state), `window.__game` (state, score, inject, bot, fast), `window.__reef` (save, visit, stats). Bot mode is `?bot=1`: no camera, the game's own bot drives, scores are flagged and never ranked.
 
 ## Coding rules
 
@@ -49,10 +52,13 @@ docs/            kit-audit.md, playtest-log.md
 ## Commands
 
 ```bash
-npm run dev          # http://localhost:4800 (strict port; the smoke test and tools expect it)
+npm run dev          # http://localhost:4800 (strict port; the tools expect it)
 npm run check        # typecheck + lint + prettier + vitest + check:games
-npm run test:e2e     # Playwright smoke; first time: npx playwright install chromium
-npm run check:games  # every games/<id>/manifest.ts has a cover, 3 screenshots, known gestures
+npm run test:e2e     # Playwright: smoke, games, boards, reef (first time: npx playwright install chromium)
+npm run capture      # CAPTURE_GAMES=reef CAPTURE_CLOCK=18:00 CAPTURE_TIMES="reef=7,12,18,24" → games/<id>/*.jpg
+npm run fps          # FPS_ROUTES='#/shelf,#/play/motes' → p50 / worst-1% frame time at dpr 2
+npm run loud         # peak dBFS of each game's bot run (gate −6)
+npm run build        # tsc + vite build + the PWA service worker into dist/
 ```
 
 ## Commits and PRs
