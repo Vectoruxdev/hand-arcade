@@ -120,6 +120,7 @@ export function playScreen(app: App): Screen {
         dpr: app.bot ? 1 : Math.min(window.devicePixelRatio || 1, 2),
         dwellEnabled: app.cursor.options.dwellEnabled,
         bot: app.bot,
+        renderScale: app.renderScale,
         get fast() {
           return fast;
         },

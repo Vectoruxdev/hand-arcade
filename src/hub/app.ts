@@ -31,6 +31,8 @@ export interface App {
   profile: Profile | null;
   root: HTMLElement;
   bot: boolean;
+  /** From ?render=; games multiply their pixel ratio by it. */
+  renderScale: number;
   toast(text: string): void;
   setProfile(id: string | null): Promise<void>;
   /** The Welcome click: fullscreen, audio, camera. */
@@ -43,6 +45,7 @@ export interface App {
 export async function createApp(root: HTMLElement): Promise<App> {
   const params = new URLSearchParams(location.search);
   const bot = params.get('bot') === '1';
+  const renderScale = Math.min(Math.max(Number(params.get('render') ?? '1') || 1, 0.25), 1);
   const settings = await getSettings();
 
   const hands = HandService.create({
@@ -86,6 +89,7 @@ export async function createApp(root: HTMLElement): Promise<App> {
     profile: null,
     root,
     bot,
+    renderScale,
     activated: false,
     toast: showToast,
     async setProfile(id) {

@@ -313,13 +313,13 @@ export class TankScene {
   private disposed = false;
   private rngState = 17;
 
-  constructor(root: HTMLElement, dpr: number) {
+  constructor(root: HTMLElement, dpr: number, renderScale = 1) {
     this.renderer = new THREE.WebGLRenderer({
       antialias: true,
       alpha: false,
       powerPreference: 'high-performance',
     });
-    this.renderer.setPixelRatio(Math.min(dpr, 1.5));
+    this.renderer.setPixelRatio(Math.min(dpr, 1.5) * renderScale);
     this.renderer.setClearColor(0x0f1729, 1);
     this.renderer.shadowMap.enabled = false;
     this.canvas = this.renderer.domElement;

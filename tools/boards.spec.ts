@@ -34,7 +34,7 @@ async function addRows(page: Page, name: string, rows: [string, number][]): Prom
 }
 
 async function playOnce(page: Page, id: string, name: string): Promise<number> {
-  await openSeeded(page, `#/play/${id}`, name);
+  await openSeeded(page, `#/play/${id}`, name, 0.5);
   await page.waitForFunction(
     () => (window as unknown as { __game?: { state(): string } }).__game?.state() === 'playing',
     null,

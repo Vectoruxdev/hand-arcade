@@ -41,7 +41,7 @@ async function mount(host: GameHost): Promise<GameInstance> {
   advance(save, now);
   const away = summarizeAway(before, save, now);
 
-  const scene = new TankScene(host.root, host.settings.dpr);
+  const scene = new TankScene(host.root, host.settings.dpr, host.settings.renderScale);
   const audio = new ReefAudio(host);
   const gestures = new ReefGestures();
   const visit = createVisit(now);

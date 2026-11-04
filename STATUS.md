@@ -32,7 +32,7 @@ Jared asked for every remaining phase to be built overnight without questions. W
 
 - **No kit.** open-source-hands never turned up, so `src/hands/` is written in-house on MediaPipe (see `KIT_VERSION.md`); the plan's signal names are kept, `docs/kit-audit.md` is complete.
 - **Motes and Balloon Pop are originals** built from plan sections 9 and 10, not ports. Same rules, same scoring, same manifests.
-- **Contract additions** (`src/games/types.ts`): `GameModule.bot?(host, tools)` for the self-player, `GameInstance.score?()` for the live score, `host.settings.fast` as the timer multiplier behind `window.__game.fast()`. Games still import only `types.ts`.
+- **Contract additions** (`src/games/types.ts`): `GameModule.bot?(host, tools)` for the self-player, `GameInstance.score?()` for the live score, `host.settings.fast` as the timer multiplier behind `window.__game.fast()`, `host.settings.renderScale` (from `?render=0.5`) so the e2e gates can run the 3D games on a CI runner's software GL. Games still import only `types.ts`.
 - **Bot mode skips the Welcome guards** (`?bot=1`): no camera to ask for, so a reload lands on the shelf with the active player. Real users still get Welcome after a reload (the camera needs the click).
 - **One PR per phase** with one commit per session, merged with a merge commit once CI is green, so the next phase can branch from the last. Finer than that would be 20 PRs in one night.
 - **Placeholder covers** (`scripts/placeholder-cover.ts`) stand in until the real captures in 5.1.

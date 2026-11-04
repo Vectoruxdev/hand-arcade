@@ -13,7 +13,7 @@ test.setTimeout(420_000);
 for (const id of ids) {
   test(`${id}: the bot plays a full round to the results sheet`, async ({ page }) => {
     const errors = collectErrors(page);
-    await openSeeded(page, `#/play/${id}`, 'Bot');
+    await openSeeded(page, `#/play/${id}`, 'Bot', 0.5);
     await page.waitForFunction(
       () => (window as unknown as { __game?: { state(): string } }).__game?.state() === 'playing',
       null,
@@ -47,7 +47,8 @@ for (const id of ids) {
     console.info(`${id}: bot scored ${score}`);
 
     // Play again mounts a fresh instance; do it twice and make sure nothing leaks loudly.
-    for (let i = 0; i < 2; i++) {
+    // Reef is the heavy scene: one cycle on software GL is plenty (reef.spec mounts it four more times).
+    for (let i = 0; i < (id === 'reef' ? 1 : 2); i++) {
       await page.getByRole('button', { name: 'Play again' }).click();
       await page.waitForFunction(
         () => (window as unknown as { __game?: { state(): string } }).__game?.state() === 'playing',

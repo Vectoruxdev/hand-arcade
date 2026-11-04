@@ -144,6 +144,8 @@ export interface GameHost {
     bot: boolean;
     /** Timer multiplier for tests; 1 = normal. The hub sets it from window.__game.fast(). Read it every frame. */
     fast: number;
+    /** Multiplies a renderer's pixel ratio; 1 normally. Tests pass ?render=0.5 so software GL keeps up. */
+    renderScale: number;
   };
   /** Date.now() wrapped so tests can fake it. */
   clock: { now(): number };
