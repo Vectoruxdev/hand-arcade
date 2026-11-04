@@ -16,9 +16,9 @@ Progress against the vault plan (`Build Plan v2 — Expanded 2026-11-03.md`, sec
 - [ ] **Vendor the kit** from open-source-hands `src/kit` at `dd79fb7` into `src/hands/` — **blocked: the upstream repo was not found on this Mac, under Jared's GitHub accounts, or in any prior session. Needs its location from Jared.**
 - [ ] **Kit audit** (`docs/kit-audit.md`): confirm every signal name and threshold the plan relies on — blocked on the same.
 - [ ] Carry over the starter's `capture`, `fps`, `loud` Playwright tools — blocked on the same.
-- [ ] GitHub remote + first CI run — waiting for Jared's go (which org: Vectoruxdev or personal).
+- [x] GitHub remote: `Vectoruxdev/hand-arcade` (private), created 2026-11-03; `main` pushed at `39da337`. First CI run: see below.
 
-**Gate (CI green on an empty page; audit lists every signal):** local `npm run check` passes (typecheck, lint, Prettier, 8 unit tests, `check:games` with 0 games) and `npm run test:e2e` passes (1 smoke test, Chromium headless shell 1248; the first `playwright install` attempt failed on a transient download error and the retry succeeded). CI not yet run (no remote). Audit pending the kit.
+**Gate (CI green on an empty page; audit lists every signal):** local `npm run check` passes (typecheck, lint, Prettier, 8 unit tests, `check:games` with 0 games) and `npm run test:e2e` passes (1 smoke test, Chromium headless shell 1248; the first `playwright install` attempt failed on a transient download error and the retry succeeded). **CI green on the first run** (2026-11-03, run 41751136789 on `39da337`, 1 min 11 s: npm ci, typecheck, lint, format:check, vitest, check:games, Playwright chromium install, smoke 1/1). Audit pending the kit. Two runner annotations: `actions/checkout@v4` and `actions/setup-node@v4` target Node 20 (deprecated on GitHub runners) and `ubuntu-latest` moves to Ubuntu 26 from 2026-10-19; checkout, setup-node and upload-artifact bumped from v4 to v7 on the next commit.
 
 Resolved versions: Vite 7.3.7, TypeScript 5.9.3, ESLint 9.39.5 + typescript-eslint 8.72.1, Prettier 3.9.10, Vitest 3.2.7, @playwright/test 1.64.1, @mediapipe/tasks-vision 0.10.35, fake-indexeddb 6.2.7, Node 24.19.0 / npm 11.17.0.
 
