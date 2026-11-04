@@ -10,6 +10,7 @@ export class HintLine {
   readonly el: HTMLElement;
   private context = '';
   private game: string | null = null;
+  private override: string | null = null;
 
   constructor() {
     this.el = h('p', { class: 'hint-line', 'data-hint': '', 'aria-live': 'polite' });
@@ -31,8 +32,15 @@ export class HintLine {
     this.render();
   }
 
+  /** A hub-level line that wins over everything ("Show me your hand"); null restores. */
+  setOverride(text: string | null): void {
+    this.override = text;
+    this.render();
+  }
+
   private render(): void {
-    if (this.game !== null) this.el.textContent = this.game;
+    if (this.override !== null) this.el.textContent = this.override;
+    else if (this.game !== null) this.el.textContent = this.game;
     else this.el.innerHTML = this.context;
   }
 }
