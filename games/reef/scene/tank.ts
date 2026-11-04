@@ -290,6 +290,7 @@ export class TankScene {
   private fog: THREE.Fog;
   private backdrop: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>;
   private back: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>;
+  private sides: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>[] = [];
   private gravel: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshStandardMaterial>;
   private caustic: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>;
   private causticBack: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>;
@@ -360,6 +361,11 @@ export class TankScene {
         },
       }),
     );
+    for (const sign of [-1, 1]) {
+      const side = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), this.back.material);
+      side.rotation.y = (sign * Math.PI) / 2;
+      this.sides.push(side);
+    }
     this.gravel = new THREE.Mesh(
       new THREE.PlaneGeometry(1, 1),
       new THREE.MeshStandardMaterial({ map: grav, roughness: 1, metalness: 0 }),
@@ -460,6 +466,7 @@ export class TankScene {
     this.scene.add(
       this.backdrop,
       this.back,
+      ...this.sides,
       this.gravel,
       this.caustic,
       this.causticBack,
@@ -493,6 +500,12 @@ export class TankScene {
     const { w, h, d } = this.bounds;
     this.back.scale.set(w, h, 1);
     this.back.position.set(0, h / 2, -d / 2);
+    this.sides.forEach((side, i) => {
+      const sign = i === 0 ? -1 : 1;
+      side.scale.set(d, h, 1);
+      side.position.set((sign * w) / 2, h / 2, 0);
+      side.rotation.y = (-sign * Math.PI) / 2;
+    });
     this.gravel.scale.set(w, d, 1);
     this.gravel.position.set(0, 0.005, 0);
     (this.gravel.material.map as THREE.Texture).repeat.set(w * 2, d * 2);
@@ -515,7 +528,7 @@ export class TankScene {
     bars[3]?.position.set(w / 2 + th / 2, h / 2, d / 2);
     this.shafts.forEach((s, i) => {
       const x = (-0.3 + i * 0.2) * w;
-      s.scale.set(0.12 * h, h * 0.95, 1);
+      s.scale.set(0.26 * h, h * 0.98, 1);
       s.position.set(x, h * 0.5, -d * 0.1);
       s.rotation.z = -0.12 + i * 0.06;
     });

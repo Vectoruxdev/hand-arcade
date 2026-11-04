@@ -154,17 +154,23 @@ export function flakeTexture(): THREE.CanvasTexture {
 }
 
 export function shaftTexture(): THREE.CanvasTexture {
-  return canvasTexture(64, 256, (ctx) => {
-    const g = ctx.createLinearGradient(0, 0, 0, 256);
-    g.addColorStop(0, 'rgba(255,255,255,0.55)');
-    g.addColorStop(1, 'rgba(255,255,255,0)');
-    ctx.fillStyle = g;
-    ctx.beginPath();
-    ctx.moveTo(24, 0);
-    ctx.lineTo(40, 0);
-    ctx.lineTo(64, 256);
-    ctx.lineTo(0, 256);
-    ctx.closePath();
-    ctx.fill();
+  return canvasTexture(128, 256, (ctx) => {
+    ctx.clearRect(0, 0, 128, 256);
+    // Soft on every edge: a vertical fade times a horizontal bell.
+    const img = ctx.createImageData(128, 256);
+    for (let y = 0; y < 256; y++) {
+      const v = 1 - y / 256;
+      for (let x = 0; x < 128; x++) {
+        const u = (x / 128 - 0.5) * 2;
+        const bell = Math.exp(-u * u * 3.5);
+        const a = Math.max(0, v * v * bell) * 255;
+        const i = (y * 128 + x) * 4;
+        img.data[i] = 255;
+        img.data[i + 1] = 255;
+        img.data[i + 2] = 255;
+        img.data[i + 3] = a;
+      }
+    }
+    ctx.putImageData(img, 0, 0);
   });
 }
