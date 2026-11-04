@@ -40,7 +40,7 @@ Test hooks: `window.__arcade` (seed, go, injectHands, state), `window.__game` (s
 - **TypeScript strict** with `noUncheckedIndexedAccess`. No `any`. `import type` for types (`verbatimModuleSyntax`).
 - **Node 24** (`.node-version`). Scripts import with `.ts` extensions so `node scripts/x.ts` runs unbuilt.
 - **Games never import the hub.** A game imports only `src/games/types.ts` and its own folder; everything else arrives through `GameHost`. The hub never imports a game except through the registry.
-- **The kit is vendored, not forked.** `src/hands/` is copied from upstream `src/kit` at the hash in `KIT_VERSION.md`. Any local edit gets a line there. Signal names the plan relies on are confirmed in `docs/kit-audit.md`; if the kit says otherwise, fix the plan and the audit, not the kit.
+- **The kit is in-house.** `src/hands/` was written here on MediaPipe because the open-source-hands upstream was never found (`KIT_VERSION.md`). Every signal the plan relies on is listed with its real name and threshold in `docs/kit-audit.md`; when a threshold changes, change the audit in the same commit.
 - **Hands first, never hands only.** Every action has a mouse, touch and keyboard twin. Every actionable element is a real `<button>` with `data-hand-target` (and `data-dwell` where dwell applies); the Cursor calls `element.click()`, so one `onclick` serves every input.
 - **One camera.** Only `HandService` calls `getUserMedia`. Games subscribe to `host.hands.onFrame`.
 - **Bot scores never count.** Anything run with `?bot=1` writes `bot: true` and every board filters it out.
