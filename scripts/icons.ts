@@ -26,7 +26,9 @@ const files: [string, number, number][] = [
 ];
 for (const [name, size, pad] of files) {
   await page.setViewportSize({ width: size, height: size });
-  await page.setContent(svg(pad).replace('width="512" height="512"', `width="${size}" height="${size}"`));
+  await page.setContent(
+    svg(pad).replace('width="512" height="512"', `width="${size}" height="${size}"`),
+  );
   await page.screenshot({ path: join(out, name), type: 'png' });
   console.info(`icons: ${name}`);
 }
