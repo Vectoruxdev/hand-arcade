@@ -227,6 +227,10 @@ Fist, pinch ×3, thumbs up, swipes. The first attempt recorded nothing and found
 - **Gates against the live URL (`npm run test:live`): 6 of 6.** Welcome renders with no errors; the mouse-and-keyboard path (player, browse, play, results, boards); the hand-only path (ring, dwell, pinch, swipe, pass-over); and every bot to its results sheet (Motes 22 s, Pop 28 s, Reef 11 s). The boards and reef gates stay dev-server-only: they import `src/data` modules through Vite, which a built site does not serve.
 - `npm run test:live` runs the smoke and games gates against a deployment: `ARCADE_BASE_URL=https://hand-arcade-beta.vercel.app npm run test:live` (`playwright.live.config.ts` reuses the main config without the dev server).
 
+## Open source (2026-11-04)
+
+The repository is **public** at <https://github.com/Vectoruxdev/hand-arcade> under the MIT license (`LICENSE`; the MediaPipe model and WASM stay Apache 2.0, noted in the README). Before the switch, every branch and the whole history were scanned: no keys, tokens, passwords, `.env` files, email addresses in files, LAN addresses or phone numbers. The only private-looking content was the path to Jared's notes in `CLAUDE.md` and the README, now reworded, and the playtest template, which now asks for initials and an age band so no child's full name lands in a public file. The eight recorded hand frames in `tests/fixtures/hands/` are landmark coordinates only. The old note path remains in the history of the early commits and on the branches below `phase-3/reef`; it is a folder name, not a secret, so the history was left alone.
+
 ## Overnight notes for the morning
 
 - **CI is green on PR #4** (the whole stack: 8 of 8 e2e gates, 3m43s) and on PR #2. PR #3's check is stale red because its branch predates the hardening below; #4 contains everything, so the stack is proven.
