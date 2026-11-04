@@ -77,3 +77,21 @@ Gate: smoke test 3 opens the arcade in bot mode, lands on the shelf with a seede
 `src/games/registry.ts` (eager manifests, lazy modules, assets), `src/hub/screens/play.ts`: host object, overlay (chip fades after 3 s, pause button), pause sheet, quit confirm (Reef wording), results sheet 600 ms after `submitScore` with best / rank movement / bot tag, error sheet when a game throws (mount or frame), `window.__game` hook, bot auto-start in `?bot=1`. Placeholder modules in `games/*/index.ts` prove the contract.
 
 Gate: smoke test 2 mounts the stub, pauses with P, resumes, submits a score (42), shows the sheet, plays again, quits; test 3 pauses on clap and reaches the quit confirm by the raised palm.
+
+### 2.2 Motes — done (original, not a port)
+
+`games/motes/`: `rules.ts` (pure: spawn, drift, gentle pull toward the hand, 45 s, gold 1 in 8 worth five, catch radius 7.5% of the height, seeded RNG), `scene.ts` (three.js: dusk sky shader with soft stars and a hill line, instanced quads for motes, sparks and the hand glow; software GL clamps point sizes so no gl_PointSize), `audio.ts` (catch blip, gold chime, last-five tick, end chord through `host.audio.out`), `bot.ts` (seeks the nearest mote, reaches in about half a second, pinches, rests). HUD under the hub chrome (score 3.6 rem, time 2.4 rem, Lamp pulse in the last 5 s).
+
+Gate: `GAMES=motes npm run test:e2e` → the bot reaches the results sheet (49 at fast 8, right around the reference of 60), four play-again/quit cycles, no leaked canvases, no console errors. 💡 The bot is paced like a person so captures show a full sky of motes.
+
+### 2.3 Balloon Pop — done (original, built by a subagent to the plan's table)
+
+`games/pop/`: `game.ts` (pure rules), `render.ts` (2D canvas, pre-rendered balloon sprites, bursts, fingertip glow), `audio.ts`, `bot.ts`, `index.ts`. Every rule in plan 10.1 is in, with three 💡 interpretations: the combo window is anchored at the chain's first pop (a rolling window chained the whole end-game and scored 90+ against a reference of 40); the bot rests 1.5 s after a pop so it lands 35–45; the rise speed ends at 0.193 (five 10% steps) rather than 0.21.
+
+Gate: `GAMES=pop npm run test:e2e` → 39 at fast 8, results sheet, four cycles, no errors. Both index tips pop; the same balloon never pops twice.
+
+### 2.4 Boards — done
+
+`points.ts` and `boards.ts` landed in 1.3; the results sheet shows best / new best / rank movement; the family chip shows the rank; trophy and flame marks on both boards; the weekly column on the family board. `tools/boards.spec.ts` seeds two profiles with human rows (Bo 1,200 / Ada 550) and checks the order, the marks, the detail-page board and that a bot run never changes a board.
+
+**Phase 2 gate:** two profiles play both games (by bot, in CI) and watch their rank change (`boards.spec.ts`); by hand only is proven for the hub in smoke test 3. One PR per phase: `phase-2/games` is stacked on `phase-1/foundation` because the auto-mode classifier refuses to merge PRs without review, so Jared merges #2 then #3 in the morning.
