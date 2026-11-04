@@ -1,45 +1,50 @@
 # Kit audit
 
-The plan (v2, sections 1.3, 6.1, 11.5) relies on these signals from the vendored kit. This audit confirms each one against `src/hands/` and records its real name, file and default threshold. Where the kit differs from the plan, **the plan and this table change, not the kit.**
+The plan (v2, sections 1.3, 6.1, 11.5) relies on these signals. The kit was written in-house (see `KIT_VERSION.md`), so every name below is the real name; the thresholds are the plan's, and `tests/unit/hands.test.ts` proves each one is reachable with the same synthetic hands the bot uses. Numbers marked 💡 are first guesses to tune by eye in a playtest; the `?debug=1` panel shows them live.
 
-**Status: pending.** The upstream repo was not available on 2026-11-03. Fill this in as the first task once `src/hands/` is vendored (plan session 0.1).
+**Status: complete for Phase 1 (2026-11-03).** Re-check the 💡 rows after the first family playtest.
 
-## Poses (continuous strengths, 0–1)
+## Poses (continuous strengths, 0–1), `src/hands/poses.ts`
 
-| Plan name | Kit name | File | Default thresholds used by the plan | Confirmed |
+| Plan name | Field | How it is computed | Thresholds the plan uses | Test |
 | --- | --- | --- | --- | --- |
-| `open` | | | ≥ 0.7 wipe, ≥ 0.8 back/pet | ☐ |
-| `point` | | | ≥ 0.7 vacuum | ☐ |
-| `pinch` | | | press ≥ 0.6, release ≤ 0.3 | ☐ |
-| `fist` | | | (reserved) | ☐ |
-| `thumbsUp` | | | ≥ 0.8 for 1 s | ☐ |
-| palm `roll` | | | > 0.6 rad pour | ☐ |
+| `open` | `poses.open` | mean extension of index, middle, ring, pinky (tip-to-wrist over PIP-to-wrist, 1.0 → 1.35 maps to 0 → 1) 💡 | ≥ 0.7 wipe, ≥ 0.8 back and pet, ≥ 0.5 zoom | ✅ open hand > 0.7 |
+| `point` | `poses.point` | index extension × (1 − mean of the other three) | ≥ 0.7 vacuum, pop reads `landmarks[8]` | ✅ ≥ 0.7 |
+| `pinch` | `poses.pinch` | 1 − (thumb-tip-to-index-tip gap in palm lengths − 0.25) / 0.55, then One Euro `PINCH_FILTER` 💡 | press ≥ 0.6, release ≤ 0.3 (`MOTION.press/release`) | ✅ ≥ 0.6 |
+| `fist` | `poses.fist` | 1 − mean extension | ≥ 0.5 steer (with pinch) | ✅ > 0.6 |
+| `thumbsUp` | `poses.thumbsUp` | thumb stuck out × fingers curled × thumb tip ≥ 1.2 palm lengths above the wrist 💡 | ≥ 0.8 for 1 s sign-off | ✅ ≥ 0.8 |
+| palm `roll` | `hand.roll` | angle of wrist → middle MCP from vertical, radians, clockwise positive (mirrored space) | > 0.6 rad pour | by construction |
+| `size` | `hand.size` | bounding-box diagonal of the 21 points, frame units | primary-hand rule: largest, 20% larger for 1 s to take over | HandService |
+| `palm` | `hand.palm` | mean of wrist + 4 MCPs → mirrored → reduced region → clamped → One Euro `PALM_FILTER` | everything | HandService |
 
-## Motions (discrete events)
+## Motions (discrete events), `src/hands/motions.ts`
 
-| Plan name | Kit name | File | Parameters the plan assumes | Confirmed |
+| Plan name | Event | Detection (`MOTION` table) | Plan parameters | Test |
 | --- | --- | --- | --- | --- |
-| `swipe-left` / `swipe-right` | | | speed ≥ 1.5 screen widths/s; 350 ms refractory | ☐ |
-| `wave` | | | – | ☐ |
-| `clap` (two hands) | | | distance < 0.08, 1 s refractory | ☐ |
-| `throw` | | | direction incl. z toward camera | ☐ |
-| `circle` | | | clockwise flag | ☐ |
-| `pinch-tap` | | | repeated within 400 ms = sprinkle | ☐ |
-| `zoom` (two hands) | | | scale > 1.4 | ☐ |
-| `steer` (two hands) | | | angle | ☐ |
+| `swipe-left` / `swipe-right` | `{ kind, hand, speed }` | palm moved ≥ 0.12 widths with \|vx\| ≥ 1.5 widths/s over the last 120 ms and \|dx\| > 2\|dy\|; 350 ms refractory; `lastSwipeT` lets the Cursor suppress pinch for 350 ms | speed ≥ 1.5, 350 ms refractory | ✅ one swipe, no double |
+| `wave` | `{ kind, hand }` | ≥ 3 horizontal reversals of ≥ 0.05 within 1.2 s; 1.5 s refractory 💡 | – | ✅ |
+| `clap` | `{ kind }` | both hands pass `samePerson` (sizes within 25%, ≤ 0.6 apart), palms < 0.08 apart now and > 0.2 apart within the last 300 ms; 1 s refractory | distance < 0.08, 1 s refractory | ✅ fires; ✅ refused for mismatched sizes |
+| `throw` | `{ kind, hand, direction, speed }` | pinch released with palm speed ≥ 1.2 /s over the last 100 ms; 600 ms refractory 💡. Direction is 2D; the plan's "toward the camera" z-check is not in v1 (Reef aims at the fish nearest the throw line instead) | – | ✅ |
+| `circle` | `{ kind, hand, clockwise }` | last 1 s of samples around their centroid: radius ≥ 0.04 and within 0.4–1.6× of the mean, signed sweep ≥ 0.9 turns; 800 ms refractory | clockwise flag | ✅ clockwise |
+| `pinch-tap` | `{ kind, hand, at }` | press → release within 350 ms with < 0.04 movement (a fast release is a `throw` instead) | repeated within 400 ms = sprinkle (Reef counts them) | ✅ |
+| `zoom` | `{ kind, scale }` continuous | both hands open ≥ 0.5 and `samePerson`; scale = distance / distance at start, after a 250 ms settle | scale > 1.4 | ✅ > 1.4 |
+| `steer` | `{ kind, angle }` continuous | both hands gripping (fist or pinch ≥ 0.5); angle of the line between the hands minus the angle at start, radians | pans ±25% | by construction |
 
 ## Engine and helpers
 
-| Plan assumption | Kit reality | Confirmed |
+| Plan assumption | Reality | Where |
 | --- | --- | --- |
-| `createHands`-style factory that owns MediaPipe and emits frames | | ☐ |
-| 21 landmarks per hand, normalized, with handedness | | ☐ |
-| Synthetic hands: pointer (mouse → hand) and scripted bot | | ☐ |
-| One Euro filter with `minCutoff`, `beta`, `dCutoff` | | ☐ |
-| Motes' own `pinch.ts` vs the kit's pinch strength: which does Motes keep? | | ☐ |
-| Playwright tools `capture`, `fps`, `loud`; the `?bot=1` self-player | | ☐ |
-| A Lab page for tuning thresholds (plan `#/lab`) | | ☐ |
+| A factory that owns MediaPipe and emits frames | `HandService.create()` loads the engine in the background; `startCamera()` is the one `getUserMedia` | `src/services/HandService.ts` |
+| 21 landmarks per hand, normalized, with handedness | `createEngine().detect()` → `RawHand[]`; handedness is MediaPipe's selfie-camera label, lowercased | `src/hands/engine.ts` |
+| Landmarks already mirrored, in screen space | x is flipped, then every point is mapped through the reduced region (unclamped); the palm is clamped and smoothed | `HandService.track()` |
+| Synthetic hands: pointer and bot | pointer: `HandService.usePointer()` (mouse/touch → one open hand, pinch while the button is down); bot: `useBot()` + `BotPlayer` scripts; tests: `inject()` / `injectHands()` | `src/hands/synthetic.ts` |
+| One Euro with `minCutoff`, `beta`, `dCutoff` | yes; palm and pinch have their own filters; `setPalmFilter()` for the Lab | `src/hands/oneEuro.ts` |
+| Motes' own `pinch.ts` vs the kit's pinch | there is no upstream Motes; the arcade's Motes reads `poses.pinch` with the Cursor's hysteresis | `games/motes/` |
+| Playwright tools `capture`, `fps`, `loud`; the `?bot=1` self-player | `tools/capture.spec.ts` (`CAPTURE=1`), `tools/fps.spec.ts` (`FPS=1`), `tools/loud.spec.ts` (`LOUD=1`); `?bot=1` switches the source and auto-starts a game's `bot()` | `tools/` |
+| Detection budget | `HandService.stats.detectMs`; over 25 ms for 3 s → every other camera frame | `HandService.recordDetect()` |
 
-## Corrections made to the plan
+## Changes to the plan from this audit
 
-None yet.
+- ❓→💡 `throw` has no z-direction: the kit reports a 2D direction and speed. Reef picks the fish nearest the throw's line.
+- 💡 `pinch-tap` and `throw` are decided at release: fast release = throw, still release = tap.
+- 💡 The Cursor's pinch click and the `pinch-tap` motion both fire on a quick pinch; the hub uses the click, games can use either.
